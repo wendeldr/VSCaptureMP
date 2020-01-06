@@ -74,7 +74,9 @@ namespace VSCaptureMP
                 Console.WriteLine();
                 Console.Write("Choose connection mode (1-2):");
 
-                sConnectset = Console.ReadLine();
+                //JFANNON 12/27/2019
+                //sConnectset = Console.ReadLine();
+                sConnectset = "1";
 
             }
 
@@ -442,7 +444,9 @@ namespace VSCaptureMP
 
 
                 Console.Write("COM port({0}): ", _serialPort.PortName.ToString());
-                portName = Console.ReadLine();
+                //JFANNON 12/27/2019
+                //portName = Console.ReadLine();
+                portName = "/dev/ttyS0";
 
             }
 
@@ -473,7 +477,8 @@ namespace VSCaptureMP
                     Console.WriteLine("You may now connect the serial cable to the Intellivue Monitor MIB port");
                     Console.WriteLine("Press any key to continue..");
 
-                    Console.ReadKey(true);
+                    //JFANNON 12/27/2019
+                    //Console.ReadKey(true);
 
                 }
 
@@ -495,7 +500,9 @@ namespace VSCaptureMP
                     Console.WriteLine();
                     Console.Write("Choose Data Transmission interval (1-5):");
 
-                    sIntervalset = Console.ReadLine();
+                    //JFANNON 12/27/2019
+                    //sIntervalset = Console.ReadLine();
+                    sIntervalset = "1";
 
                 }
 
@@ -519,7 +526,9 @@ namespace VSCaptureMP
                     Console.WriteLine();
                     Console.Write("Choose data export option (1-2):");
 
-                    sDataExportset = Console.ReadLine();
+                    //JFANNON 12/27/2019
+                    //sDataExportset = Console.ReadLine();
+                    sDataExportset = "1";
 
                 }
 
@@ -592,7 +601,9 @@ namespace VSCaptureMP
                     Console.WriteLine("Selecting all waves can lead to data loss due to bandwidth issues");
                     Console.Write("Choose Waveform data export priority option (0-9):");
 
-                   sWaveformSet = Console.ReadLine();
+                   //JFANNON 12/27/2019
+                   //sWaveformSet = Console.ReadLine();
+                   sWaveformSet = "2";
 
                 }
 
@@ -613,7 +624,9 @@ namespace VSCaptureMP
                     Console.WriteLine();
                     Console.Write("Choose Waveform data export scale option (1-2):");
 
-                    sWavescaleSet = Console.ReadLine();
+                    //JFANNON 12/27/2019
+                    //sWavescaleSet = Console.ReadLine();
+                    sWavescaleSet = "1";
 
                 }
 
@@ -690,6 +703,14 @@ namespace VSCaptureMP
             catch (Exception ex)
             {
                 Console.WriteLine("Error opening/writing to serial port :: " + ex.Message, "Error!");
+                //JFANNON 01/05/2020
+                Console.WriteLine( 
+                    "\nHelpLink ---\n{0}", ex.HelpLink );
+                Console.WriteLine( "\nSource ---\n{0}", ex.Source );
+                Console.WriteLine( 
+                    "\nStackTrace ---\n{0}", ex.StackTrace );
+                Console.WriteLine( 
+                    "\nTargetSite ---\n{0}", ex.TargetSite );
             }
             finally
             {

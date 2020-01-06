@@ -14,6 +14,10 @@
 
     You should have received a copy of the GNU Lesser General Public License
     along with VitalSignsCaptureMP.  If not, see <http://www.gnu.org/licenses/>.*/
+    
+    //V0.0 original
+    //V0.1 started adding the UC data file code
+    //V0.2 fixed V0.1 build errors, adding data output
 
 using System;
 using System.Collections.Generic;
@@ -26,6 +30,7 @@ using System.Globalization;
 using System.Threading;
 using System.Runtime.Serialization.Json;
 using System.Net;
+using System.Net.NetworkInformation;
 
 
 namespace VSCaptureMP
@@ -158,6 +163,7 @@ namespace VSCaptureMP
             public ushort obpoll_handle;
             public SaSpec saSpecData = new SaSpec();
             public SaCalibData16 saCalibData = new SaCalibData16();
+            public int outputIndex = 0;
         }
 
         //Create a singleton serialport subclass
@@ -772,6 +778,8 @@ namespace VSCaptureMP
 
             byte[] sessionheader = binreader.ReadBytes(4);
             ushort ROapdu_type = correctendianshortus(binreader.ReadUInt16());
+            ushort ROapdu_length = correctendianshortus(binreader.ReadUInt16());
+            char ROLRS_state = binreader.ReadChar();
 
             switch (ROapdu_type)
             {
@@ -784,7 +792,9 @@ namespace VSCaptureMP
                     CheckPollPacketActionType(packetbuffer);
                     break;
                 case DataConstants.RORLS_APDU:
-                    CheckLinkedPollPacketActionType(packetbuffer);
+                    if(ROLRS_state == DataConstants.RORLS_LAST) CheckLinkedPollPacketActionType(packetbuffer,1);
+                    else CheckLinkedPollPacketActionType(packetbuffer,0);
+                    
                     break;
                 case DataConstants.ROER_APDU:
                     break;
@@ -806,10 +816,10 @@ namespace VSCaptureMP
             switch (action_type)
             {
                 case DataConstants.NOM_ACT_POLL_MDIB_DATA:
-                    PollPacketDecoder(packetbuffer, 44);
+                    PollPacketDecoder(packetbuffer, 44, 1);
                     break;
                 case DataConstants.NOM_ACT_POLL_MDIB_DATA_EXT:
-                    PollPacketDecoder(packetbuffer, 46);
+                    PollPacketDecoder(packetbuffer, 46, 1);
                     break;
                 default:
                     break;
@@ -817,7 +827,7 @@ namespace VSCaptureMP
 
         }
 
-        public void CheckLinkedPollPacketActionType(byte[] packetbuffer)
+        public void CheckLinkedPollPacketActionType(byte[] packetbuffer, int endOfLinkedSet)
         {
             MemoryStream memstream = new MemoryStream(packetbuffer);
             BinaryReader binreader = new BinaryReader(memstream);
@@ -829,10 +839,10 @@ namespace VSCaptureMP
             switch (action_type)
             {
                 case DataConstants.NOM_ACT_POLL_MDIB_DATA:
-                    PollPacketDecoder(packetbuffer, 46);
+                    PollPacketDecoder(packetbuffer, 46, endOfLinkedSet);
                     break;
                 case DataConstants.NOM_ACT_POLL_MDIB_DATA_EXT:
-                    PollPacketDecoder(packetbuffer, 48);
+                    PollPacketDecoder(packetbuffer, 48, endOfLinkedSet);
                     break;
                 default:
                     break;
@@ -840,7 +850,10 @@ namespace VSCaptureMP
 
         }
 
-        public void PollPacketDecoder(byte[] packetbuffer, int headersize)
+
+
+
+        public void PollPacketDecoder(byte[] packetbuffer, int headersize, int write2file)
         {
             int packetsize = packetbuffer.GetLength(0);
 
@@ -907,12 +920,17 @@ namespace VSCaptureMP
                     }
                 }
 
-                if (m_dataexportset == 2) ExportNumValListToJSON("Numeric");
-                ExportDataToCSV();
-                ExportWaveToCSV();
+                //if (m_dataexportset == 2) ExportNumValListToJSON("Numeric");
+                if (write2file == 1) ExportDataToCSV();
+                //if (write2file == 1) ExportWaveToCSV();
+                if (write2file == 1) ExportWaveUC();
             }
 
         }
+
+
+
+
 
         public int DecodePollObjects(ref PollInfoList pollobjects, byte[] packetbuffer)
         {
@@ -1412,8 +1430,6 @@ namespace VSCaptureMP
             }
         }
 
-
-
         public static double FloattypeToValue(uint fvalue)
         {
             double value = 0;
@@ -1614,7 +1630,7 @@ namespace VSCaptureMP
                         m_strbuildvalues.Replace(",,", ",");
                         m_strbuildvalues.AppendLine();
 
-                        ExportNumValListToCSVFile(pathcsv, m_strbuildvalues);
+                        //ExportNumValListToCSVFile(pathcsv, m_strbuildvalues);
                         m_strbuildvalues.Clear();
                         m_NumericValList.RemoveRange(0, m_elementcount);
                         m_elementcount = 0;
@@ -1668,6 +1684,101 @@ namespace VSCaptureMP
                 }
 
 
+            }
+        }
+
+
+
+        public string GetDefaultMacAddress()
+        {
+            foreach (NetworkInterface nic in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (nic.Name == "wlan0")
+                    return nic.GetPhysicalAddress().ToString();
+            }
+            return "";
+        }
+        public void ExportWaveUC()
+        {
+            int wavevallistcount = m_WaveValResultList.Count;
+
+            if (wavevallistcount != 0)
+            {
+                string pathcsv = Path.Combine(Directory.GetCurrentDirectory(), GetDefaultMacAddress()+" UCData.csv");
+                //write header if needed
+                if(m_transmissionstart)
+                {
+                    m_strbuildwavevalues.Append("TimeStamp");
+                    m_strbuildwavevalues.Append(',');
+                    m_strbuildwavevalues.Append("Index");
+                    m_strbuildwavevalues.Append(',');
+                    foreach (WaveValResult WavValResult in m_WaveValResultList)
+                    {
+                        m_strbuildwavevalues.Append(string.Format("{0}", WavValResult.PhysioID));
+                        m_strbuildwavevalues.Append(',');
+                    }
+                    m_strbuildwavevalues.AppendLine();
+                    ExportNumValListToCSVFile(pathcsv, m_strbuildwavevalues);
+                    m_strbuildwavevalues.Clear();
+                    m_transmissionstart = false;
+                }
+                
+                for (int indexx = 0; indexx < 128; indexx++)
+                {
+                    m_strbuildwavevalues.Append(m_WaveValResultList[0].Timestamp);
+                    m_strbuildwavevalues.Append(',');
+                    m_strbuildwavevalues.Append(indexx.ToString());
+                    m_strbuildwavevalues.Append(',');
+                    
+                    foreach (WaveValResult WavValResult in m_WaveValResultList)
+                    {
+                        if((indexx%(128/WavValResult.saSpecData.array_size)) == 0)
+                        {
+                            //Data sample size is 16 bits, but the significant bits represent actual sample value
+
+                            //Read every 2 bytes
+                            byte msb = WavValResult.Value.ElementAt(WavValResult.outputIndex);
+                            byte lsb = WavValResult.Value.ElementAt(WavValResult.outputIndex + 1);
+                            WavValResult.outputIndex += 2;
+
+                            int msbval = msb;
+                            //mask depends on no. of significant bits
+                            //int mask = 0x3FFF; //mask for 14 bits
+                            int mask = CreateMask(WavValResult.saSpecData.significant_bits);
+
+                            //int shift = (m_sample_size-8);
+                            int msbshift = (msb << 8);
+
+                            if (WavValResult.saSpecData.SaFlags < 0x4000)
+                            {
+                                msbval = (msbshift & mask);
+                                msbval = (msbval >> 8);
+                            }
+                            else msbval = msb;
+                            msb = Convert.ToByte(msbval);
+
+                            byte[] data = { msb, lsb };
+                            if (BitConverter.IsLittleEndian) Array.Reverse(data);
+
+                            double Waveval = BitConverter.ToInt16(data, 0);
+
+                            if (WavValResult.saSpecData.SaFlags != 0x2000 && m_calibratewavevalues == true)
+                            {
+                                Waveval = CalibrateSaValue(Waveval, WavValResult.saCalibData);
+                            }
+                            
+                            m_strbuildwavevalues.Append(Waveval.ToString());
+                        }
+                        m_strbuildwavevalues.Append(',');
+                    }
+                    
+                    m_strbuildwavevalues.AppendLine();
+                    //ExportNumValListToCSVFile(pathcsv, m_strbuildwavevalues);
+                }
+                ExportNumValListToCSVFile(pathcsv, m_strbuildwavevalues);
+                m_strbuildwavevalues.Clear();
+                
+                m_WaveValResultList.RemoveRange(0, wavevallistcount);
             }
         }
 
@@ -1741,6 +1852,8 @@ namespace VSCaptureMP
                 m_WaveValResultList.RemoveRange(0, wavevallistcount);
             }
         }
+
+
 
         public static int CreateMask(int significantbits)
         {
