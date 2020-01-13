@@ -18,6 +18,7 @@
     //V0.0 original
     //V0.1 started adding the UC data file code
     //V0.2 fixed V0.1 build errors, adding data output
+    //V0.3 working on fixing serial port error
 
 using System;
 using System.Collections.Generic;
@@ -126,6 +127,7 @@ namespace VSCaptureMP
         public List<WaveValResult> m_WaveValResultList = new List<WaveValResult>();
         public StringBuilder m_strbuildwavevalues = new StringBuilder();
         public bool m_transmissionstart = true;
+        public bool m_transmissionstartUC = true;
         public string m_strTimestamp;
         public ushort m_actiontype;
         public int m_elementcount = 0;
@@ -1706,7 +1708,7 @@ namespace VSCaptureMP
             {
                 string pathcsv = Path.Combine(Directory.GetCurrentDirectory(), GetDefaultMacAddress()+" UCData.csv");
                 //write header if needed
-                if(m_transmissionstart)
+                if(m_transmissionstartUC)
                 {
                     m_strbuildwavevalues.Append("TimeStamp");
                     m_strbuildwavevalues.Append(',');
@@ -1720,7 +1722,7 @@ namespace VSCaptureMP
                     m_strbuildwavevalues.AppendLine();
                     ExportNumValListToCSVFile(pathcsv, m_strbuildwavevalues);
                     m_strbuildwavevalues.Clear();
-                    m_transmissionstart = false;
+                    m_transmissionstartUC = false;
                 }
                 
                 for (int indexx = 0; indexx < 128; indexx++)
@@ -1734,40 +1736,45 @@ namespace VSCaptureMP
                     {
                         if((indexx%(128/WavValResult.saSpecData.array_size)) == 0)
                         {
-                            //Data sample size is 16 bits, but the significant bits represent actual sample value
-
-                            //Read every 2 bytes
-                            byte msb = WavValResult.Value.ElementAt(WavValResult.outputIndex);
-                            byte lsb = WavValResult.Value.ElementAt(WavValResult.outputIndex + 1);
-                            WavValResult.outputIndex += 2;
-
-                            int msbval = msb;
-                            //mask depends on no. of significant bits
-                            //int mask = 0x3FFF; //mask for 14 bits
-                            int mask = CreateMask(WavValResult.saSpecData.significant_bits);
-
-                            //int shift = (m_sample_size-8);
-                            int msbshift = (msb << 8);
-
-                            if (WavValResult.saSpecData.SaFlags < 0x4000)
+                            if(WavValResult.outputIndex < WavValResult.Value.GetLength(0))
                             {
-                                msbval = (msbshift & mask);
-                                msbval = (msbval >> 8);
+                                //Data sample size is 16 bits, but the significant bits represent actual sample value
+                                
+                                //Read every 2 bytes
+                                byte msb = WavValResult.Value.ElementAt(WavValResult.outputIndex);
+                                byte lsb = WavValResult.Value.ElementAt(WavValResult.outputIndex + 1);
+                                WavValResult.outputIndex += 2;
+                                
+                                int msbval = msb;
+                                //mask depends on no. of significant bits
+                                //int mask = 0x3FFF; //mask for 14 bits
+                                int mask = CreateMask(WavValResult.saSpecData.significant_bits);
+                                
+                                //int shift = (m_sample_size-8);
+                                int msbshift = (msb << 8);
+                                
+                                if (WavValResult.saSpecData.SaFlags < 0x4000)
+                                {
+                                    msbval = (msbshift & mask);
+                                    msbval = (msbval >> 8);
+                                }
+                                else msbval = msb;
+                                msb = Convert.ToByte(msbval);
+                                
+                                byte[] data = { msb, lsb };
+                                if (BitConverter.IsLittleEndian) Array.Reverse(data);
+                                
+                                double Waveval = BitConverter.ToInt16(data, 0);
+                                
+                                if (WavValResult.saSpecData.SaFlags != 0x2000 && m_calibratewavevalues == true)
+                                {
+                                    Waveval = CalibrateSaValue(Waveval, WavValResult.saCalibData);
+                                }
+                                
+                                m_strbuildwavevalues.Append(Waveval.ToString());
+                                //m_strbuildwavevalues.Append(WavValResult.outputIndex.ToString());
+                                //m_strbuildwavevalues.Append('x');
                             }
-                            else msbval = msb;
-                            msb = Convert.ToByte(msbval);
-
-                            byte[] data = { msb, lsb };
-                            if (BitConverter.IsLittleEndian) Array.Reverse(data);
-
-                            double Waveval = BitConverter.ToInt16(data, 0);
-
-                            if (WavValResult.saSpecData.SaFlags != 0x2000 && m_calibratewavevalues == true)
-                            {
-                                Waveval = CalibrateSaValue(Waveval, WavValResult.saCalibData);
-                            }
-                            
-                            m_strbuildwavevalues.Append(Waveval.ToString());
                         }
                         m_strbuildwavevalues.Append(',');
                     }
