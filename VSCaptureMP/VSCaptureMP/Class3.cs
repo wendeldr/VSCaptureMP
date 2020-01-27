@@ -19,6 +19,7 @@
     //V0.1 started adding the UC data file code
     //V0.2 fixed V0.1 build errors, adding data output
     //V0.3 working on fixing serial port error
+    //V0.4 serial port should have been fixed.  Added wave option and time entry to program.cs, added new wave define in class2.cs, and changed file name determination in class3.cs.
 
 using System;
 using System.Collections.Generic;
@@ -144,6 +145,12 @@ namespace VSCaptureMP
         public string m_DeviceID;
         public string m_jsonposturl;
         public int m_dataexportset = 1;
+        
+        //JFANNON 1/24/2020
+        public int m_file_time_minutes = 15;
+        public DateTime m_file_start_time = new DateTime();
+        public DateTime m_file_end_time = new DateTime();
+        public int m_file_index = 0;
 
 
         public class NumericValResult
@@ -569,6 +576,19 @@ namespace VSCaptureMP
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_ART")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_VEN_CENT")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_AWAY_CO2")))));
+                    break;
+                case 10:
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x08))); //count
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x20))); //length
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_ECG_ELEC_POTL_I")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_ECG_ELEC_POTL_II")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_ECG_ELEC_POTL_III")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PULS_OXIM_PLETH")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_RESP")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_ART")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_ART_PULM")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_VEN_CENT")))));
+                    
                     break;
             }
         }
@@ -1690,7 +1710,45 @@ namespace VSCaptureMP
         }
 
 
-
+        public void SetFileTime(int t)
+        {
+            m_file_time_minutes = t;
+        }
+        public string GetFileIndex(DateTime currentDateTime)
+        {
+            string pathtmp = Path.Combine(Directory.GetCurrentDirectory(), "CurrentFileIndex.tmp");
+            int fileIndex = 0;
+            DateTime fileDate = new DateTime();
+            
+            if( (m_transmissionstartUC == true) || (currentDateTime > m_file_end_time) )//if start of program or time expired...
+            {
+                //update file times
+                m_file_start_time = DateTime.UtcNow;
+                m_file_end_time = m_file_start_time.AddMinutes(m_file_time_minutes);
+                if(File.Exists(pathtmp) == true)
+                {
+                    //read temp file
+                     string[] readText = File.ReadAllLines(pathtmp);
+                     fileDate = new DateTime(Convert.ToInt64(readText[0]));
+                     fileIndex = Convert.ToInt32(readText[1]);
+                     //increment index
+                     fileIndex = fileIndex+1;
+                }
+                
+                m_file_index = fileIndex;
+                
+                //write temp file
+                string[] writeText = new string[2];
+                writeText[0] = string.Format("{0}",currentDateTime.Ticks);
+                writeText[1] = string.Format("{0}",m_file_index);
+                File.WriteAllLines(pathtmp, writeText, Encoding.UTF8);
+                
+                //update index
+                m_transmissionstartUC = true;
+            }
+            
+            return string.Format("{0,4:D4}",m_file_index);
+        }
         public string GetDefaultMacAddress()
         {
             foreach (NetworkInterface nic in NetworkInterface.GetAllNetworkInterfaces())
@@ -1700,13 +1758,34 @@ namespace VSCaptureMP
             }
             return "";
         }
+        public string GetLogFilePath()
+        {
+            // filename should be in the format of:
+            // MAC_YYYYMMDD_QQQQ_WWWW.dat
+            // QQQQ is length of file in minutes as set in config file
+            // WWWW is an incrementing file number for the day
+            
+            string MAC = GetDefaultMacAddress();
+            string file_len = string.Format("{0,4:D4}",m_file_time_minutes);
+            DateTime file_date = DateTime.UtcNow;
+            string s_file_date = string.Format("{0,4:D4}{1,2:D2}{2,2:D2}",file_date.Year,file_date.Month,file_date.Day);
+            string file_idx = GetFileIndex(file_date);
+            
+            
+            return Path.Combine(Directory.GetCurrentDirectory(), MAC+"_"+s_file_date+"_"+file_len+"_"+file_idx+".dat");
+        }
         public void ExportWaveUC()
         {
             int wavevallistcount = m_WaveValResultList.Count;
 
             if (wavevallistcount != 0)
             {
-                string pathcsv = Path.Combine(Directory.GetCurrentDirectory(), GetDefaultMacAddress()+" UCData.csv");
+                
+                string pathcsv = GetLogFilePath();
+                
+                Console.WriteLine(pathcsv);
+                
+                
                 //write header if needed
                 if(m_transmissionstartUC)
                 {
@@ -1936,14 +2015,14 @@ namespace VSCaptureMP
             try
             {
                 // Open file for reading. 
-                using (FileStream _FileStream = new FileStream(_FileName, FileMode.Append, FileAccess.Write))
-                {
-                    // Writes a block of bytes to this stream using data from a byte array
-                    _FileStream.Write(_ByteArray, 0, nWriteLength);
-
-                    // close file stream. 
-                    _FileStream.Close();
-                }
+                //using (FileStream _FileStream = new FileStream(_FileName, FileMode.Append, FileAccess.Write))
+                //{
+                //    // Writes a block of bytes to this stream using data from a byte array
+                //    _FileStream.Write(_ByteArray, 0, nWriteLength);
+                //
+                //    // close file stream. 
+                //    _FileStream.Close();
+                //}
     
                 return true;
             }

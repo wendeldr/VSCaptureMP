@@ -564,6 +564,38 @@ namespace VSCaptureMP
                 _serialPort.m_jsonposturl = JSONPostUrl;
 
                 if (nDataExportset > 0 && nDataExportset < 3) _serialPort.m_dataexportset = nDataExportset;
+                
+                
+                
+                
+                //JFANNON 1/24/2020
+                string sfileTimeLength;
+                if (parser.Arguments.ContainsKey("filetime"))
+                {
+                    sfileTimeLength = parser.Arguments["filetime"][0];
+                }
+                else
+                {
+                    Console.WriteLine();
+                    Console.Write("Enter length of CSV file in minutes:");
+
+                    //sfileTimeLength = Console.ReadLine()
+                    sfileTimeLength = "15";//default to 15 minutes
+                }
+
+                int nfileTimeLength = 15;
+                if (sfileTimeLength != "") nfileTimeLength = Convert.ToInt32(sfileTimeLength);
+                _serialPort.SetFileTime(nfileTimeLength);
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
 
                 /*Console.WriteLine();
                 Console.WriteLine("CSV Data Export Options:");
@@ -603,7 +635,7 @@ namespace VSCaptureMP
 
                    //JFANNON 12/27/2019
                    //sWaveformSet = Console.ReadLine();
-                   sWaveformSet = "2";
+                   sWaveformSet = "10";
 
                 }
 

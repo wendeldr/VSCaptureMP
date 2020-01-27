@@ -1,5 +1,3 @@
-C:/Users/John/Documents/Philips connect/VSCaptureMP/VSCaptureMP/VSCaptureMP/bin/Debug/VSCaptureMP.exe.config
-C:/Users/John/Documents/Philips connect/VSCaptureMPWave/VSCaptureMP/VSCaptureMP/bin/Debug/VSCaptureMP.exe.config
 /home/pi/GIT_Workspace/VSCap/VSCaptureMP/VSCaptureMP/VSCaptureMP/bin/Debug/VSCaptureMP.exe.config
 /home/pi/GIT_Workspace/VSCap/VSCaptureMP/VSCaptureMP/VSCaptureMP/bin/Debug/VSCaptureMP.exe
 /home/pi/GIT_Workspace/VSCap/VSCaptureMP/VSCaptureMP/VSCaptureMP/bin/Debug/VSCaptureMP.pdb
