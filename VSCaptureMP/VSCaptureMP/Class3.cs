@@ -166,7 +166,7 @@ namespace VSCaptureMP
         {
             public string Timestamp;
             public string Relativetimestamp;
-            public string PhysioID;
+            public ushort PhysioID;
             public byte[] Value;
             public string DeviceID;
             public ushort obpoll_handle;
@@ -1282,7 +1282,9 @@ namespace VSCaptureMP
             //WaveVal.Timestamp = DateTime.Now.ToString();
             
             WaveVal.Timestamp = strDateTime;
-            WaveVal.PhysioID = physio_id;
+            //JFANNON 2-7-2020
+            //WaveVal.PhysioID = physio_id;
+            WaveVal.PhysioID = WaveSaObjectValue.physio_id;
             WaveVal.DeviceID = m_DeviceID;
 
             WaveVal.obpoll_handle = m_obpollhandle;
@@ -1719,11 +1721,10 @@ namespace VSCaptureMP
             string pathtmp = Path.Combine(Directory.GetCurrentDirectory(), "CurrentFileIndex.tmp");
             int fileIndex = 0;
             DateTime fileDate = new DateTime();
-            
             if( (m_transmissionstartUC == true) || (currentDateTime > m_file_end_time) )//if start of program or time expired...
             {
                 //update file times
-                m_file_start_time = DateTime.UtcNow;
+                m_file_start_time = currentDateTime;
                 m_file_end_time = m_file_start_time.AddMinutes(m_file_time_minutes);
                 if(File.Exists(pathtmp) == true)
                 {
@@ -1746,6 +1747,22 @@ namespace VSCaptureMP
                 //update index
                 m_transmissionstartUC = true;
             }
+            else if(currentDateTime.Day != m_file_start_time.Day)//check for end of day roll over
+            {
+                m_file_start_time = currentDateTime;
+                m_file_end_time = m_file_start_time.AddMinutes(m_file_time_minutes);
+                
+                m_file_index = 0;//reset to 0
+                
+                //write temp file
+                string[] writeText = new string[2];
+                writeText[0] = string.Format("{0}",currentDateTime.Ticks);
+                writeText[1] = string.Format("{0}",m_file_index);
+                File.WriteAllLines(pathtmp, writeText, Encoding.UTF8);
+                
+                //update index
+                m_transmissionstartUC = true;
+            }
             
             return string.Format("{0,4:D4}",m_file_index);
         }
@@ -1758,7 +1775,7 @@ namespace VSCaptureMP
             }
             return "";
         }
-        public string GetLogFilePath()
+        public string GetLogFilePath(DateTime file_date)
         {
             // filename should be in the format of:
             // MAC_YYYYMMDD_QQQQ_WWWW.dat
@@ -1767,7 +1784,7 @@ namespace VSCaptureMP
             
             string MAC = GetDefaultMacAddress();
             string file_len = string.Format("{0,4:D4}",m_file_time_minutes);
-            DateTime file_date = DateTime.UtcNow;
+            
             string s_file_date = string.Format("{0,4:D4}{1,2:D2}{2,2:D2}",file_date.Year,file_date.Month,file_date.Day);
             string file_idx = GetFileIndex(file_date);
             
@@ -1777,25 +1794,28 @@ namespace VSCaptureMP
         public void ExportWaveUC()
         {
             int wavevallistcount = m_WaveValResultList.Count;
+            DateTime file_date = DateTime.UtcNow;
 
             if (wavevallistcount != 0)
             {
                 
-                string pathcsv = GetLogFilePath();
+                string pathcsv = GetLogFilePath(file_date);
                 
-                Console.WriteLine(pathcsv);
+                //Console.WriteLine(pathcsv);
                 
                 
                 //write header if needed
                 if(m_transmissionstartUC)
                 {
-                    m_strbuildwavevalues.Append("TimeStamp");
+                    m_strbuildwavevalues.Append("System TimeStamp UTC");
+                    m_strbuildwavevalues.Append(',');
+                    m_strbuildwavevalues.Append("Monitor TimeStamp");
                     m_strbuildwavevalues.Append(',');
                     m_strbuildwavevalues.Append("Index");
                     m_strbuildwavevalues.Append(',');
                     foreach (WaveValResult WavValResult in m_WaveValResultList)
                     {
-                        m_strbuildwavevalues.Append(string.Format("{0}", WavValResult.PhysioID));
+                        m_strbuildwavevalues.Append(string.Format("{0}", Enum.GetName(typeof(IntelliVue.AlertSource), WavValResult.PhysioID)));  
                         m_strbuildwavevalues.Append(',');
                     }
                     m_strbuildwavevalues.AppendLine();
@@ -1806,6 +1826,8 @@ namespace VSCaptureMP
                 
                 for (int indexx = 0; indexx < 128; indexx++)
                 {
+                    m_strbuildwavevalues.Append(file_date.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture));
+                    m_strbuildwavevalues.Append(',');
                     m_strbuildwavevalues.Append(m_WaveValResultList[0].Timestamp);
                     m_strbuildwavevalues.Append(',');
                     m_strbuildwavevalues.Append(indexx.ToString());
@@ -1877,7 +1899,7 @@ namespace VSCaptureMP
 
                 foreach (WaveValResult WavValResult in m_WaveValResultList)
                 {
-                    string WavValID = string.Format("{0}WaveExport.csv", WavValResult.PhysioID);
+                    string WavValID = string.Format("{0}WaveExport.csv", Enum.GetName(typeof(IntelliVue.AlertSource), WavValResult.PhysioID));
 
                     string pathcsv = Path.Combine(Directory.GetCurrentDirectory(), WavValID);
 
