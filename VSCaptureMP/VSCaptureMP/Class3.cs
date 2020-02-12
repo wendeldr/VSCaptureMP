@@ -151,7 +151,7 @@ namespace VSCaptureMP
         public DateTime m_file_start_time = new DateTime();
         public DateTime m_file_end_time = new DateTime();
         public int m_file_index = 0;
-
+        public List<ushort> physioIdList = new List<ushort>();
 
         public class NumericValResult
         {
@@ -506,7 +506,7 @@ namespace VSCaptureMP
             SendRTSAPriorityMessage(WaveTrType.ToArray());
         }
 
-        public static void CreateWaveformSet(int nWaveSetType, List<byte> WaveTrtype)
+        public void CreateWaveformSet(int nWaveSetType, List<byte> WaveTrtype)
         {
             //Upto 3 ECG and/or 8 non-ECG waveforms can be polled by selecting the appropriate labels
             //in the Wave object priority list
@@ -588,7 +588,14 @@ namespace VSCaptureMP
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_ART")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_ART_PULM")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_VEN_CENT")))));
-                    
+                    physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_ECG_ELEC_POTL_I);
+                    physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_ECG_ELEC_POTL_II);
+                    physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_ECG_ELEC_POTL_III);
+                    physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_PLETH);
+                    physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_RESP);
+                    physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_PRESS_BLD_ART);
+                    physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_PRESS_BLD_ART_PULM);
+                    physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_PRESS_BLD_VEN_CENT);
                     break;
             }
         }
@@ -1794,12 +1801,15 @@ namespace VSCaptureMP
         public void ExportWaveUC()
         {
             int wavevallistcount = m_WaveValResultList.Count;
-            DateTime file_date = DateTime.UtcNow;
-
+            DateTime time_now = DateTime.UtcNow;
+            
+            StringBuilder temp_string = new StringBuilder();
+            int csum_calc = 0;
+            
             if (wavevallistcount != 0)
             {
                 
-                string pathcsv = GetLogFilePath(file_date);
+                string pathcsv = GetLogFilePath(time_now);
                 
                 //Console.WriteLine(pathcsv);
                 
@@ -1813,25 +1823,56 @@ namespace VSCaptureMP
                     m_strbuildwavevalues.Append(',');
                     m_strbuildwavevalues.Append("Index");
                     m_strbuildwavevalues.Append(',');
+                    m_strbuildwavevalues.Append("NLS_NOM_ECG_ELEC_POTL_I");
+                    m_strbuildwavevalues.Append(',');
+                    m_strbuildwavevalues.Append("NLS_NOM_ECG_ELEC_POTL_II");
+                    m_strbuildwavevalues.Append(',');
+                    m_strbuildwavevalues.Append("NLS_NOM_ECG_ELEC_POTL_III");
+                    m_strbuildwavevalues.Append(',');
+                    m_strbuildwavevalues.Append("NLS_NOM_PULS_OXIM_PLETH");
+                    m_strbuildwavevalues.Append(',');
+                    m_strbuildwavevalues.Append("NLS_NOM_RESP");
+                    m_strbuildwavevalues.Append(',');
+                    m_strbuildwavevalues.Append("NLS_NOM_PRESS_BLD_ART");
+                    m_strbuildwavevalues.Append(',');
+                    m_strbuildwavevalues.Append("NLS_NOM_PRESS_BLD_ART_PULM");
+                    m_strbuildwavevalues.Append(',');
+                    m_strbuildwavevalues.Append("NLS_NOM_PRESS_BLD_VEN_CENT");
+                    m_strbuildwavevalues.Append(',');
+                    
                     foreach (WaveValResult WavValResult in m_WaveValResultList)
                     {
-                        m_strbuildwavevalues.Append(string.Format("{0}", Enum.GetName(typeof(IntelliVue.AlertSource), WavValResult.PhysioID)));  
-                        m_strbuildwavevalues.Append(',');
+                        if(physioIdList.Contains(WavValResult.PhysioID) == false)
+                        {
+                            physioIdList.Add((ushort)WavValResult.PhysioID);
+                            m_strbuildwavevalues.Append(string.Format("{0}", Enum.GetName(typeof(IntelliVue.AlertSource), WavValResult.PhysioID)));  
+                            m_strbuildwavevalues.Append(',');
+                        }
                     }
+                    m_strbuildwavevalues.Append("CSUM");
+                    //m_strbuildwavevalues.Append(',');
                     m_strbuildwavevalues.AppendLine();
                     ExportNumValListToCSVFile(pathcsv, m_strbuildwavevalues);
                     m_strbuildwavevalues.Clear();
                     m_transmissionstartUC = false;
                 }
                 
+                double[] data_array = new double[physioIdList.Count];
+                
+                //write data
                 for (int indexx = 0; indexx < 128; indexx++)
                 {
-                    m_strbuildwavevalues.Append(file_date.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture));
-                    m_strbuildwavevalues.Append(',');
-                    m_strbuildwavevalues.Append(m_WaveValResultList[0].Timestamp);
-                    m_strbuildwavevalues.Append(',');
-                    m_strbuildwavevalues.Append(indexx.ToString());
-                    m_strbuildwavevalues.Append(',');
+                    temp_string.Append(time_now.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture));
+                    temp_string.Append(',');
+                    temp_string.Append(m_WaveValResultList[0].Timestamp);
+                    temp_string.Append(',');
+                    temp_string.Append(indexx.ToString());
+                    temp_string.Append(',');
+                    
+                    for ( int i = 0; i < data_array.Length; ++i ) 
+                    {
+                        data_array[i] = double.NaN;
+                    }
                     
                     foreach (WaveValResult WavValResult in m_WaveValResultList)
                     {
@@ -1872,17 +1913,36 @@ namespace VSCaptureMP
                                     Waveval = CalibrateSaValue(Waveval, WavValResult.saCalibData);
                                 }
                                 
-                                m_strbuildwavevalues.Append(Waveval.ToString());
-                                //m_strbuildwavevalues.Append(WavValResult.outputIndex.ToString());
-                                //m_strbuildwavevalues.Append('x');
+                                //temp_string.Append(Waveval.ToString());
+                                data_array[physioIdList.IndexOf(WavValResult.PhysioID)] = Waveval;
+                                //temp_string.Append(WavValResult.outputIndex.ToString());
+                                //temp_string.Append('x');
                             }
                         }
-                        m_strbuildwavevalues.Append(',');
+                        //temp_string.Append(',');
+                    } //foreach data
+                    
+                    for ( int i = 0; i < data_array.Length; ++i ) 
+                    {
+                        if(data_array[i].ToString() != "NaN")
+                        {
+                            temp_string.Append(data_array[i].ToString());
+                        }
+                        temp_string.Append(',');
                     }
                     
-                    m_strbuildwavevalues.AppendLine();
+                    for (int ctr = 0; ctr < temp_string.Length; ctr++) 
+                    {
+                        csum_calc = csum_calc + temp_string[ctr];
+                    }
+                    temp_string.Append(string.Format("{0}",csum_calc));
+                    csum_calc = 0;
+                    temp_string.AppendLine();
+                    
+                    m_strbuildwavevalues.Append(temp_string.ToString());
+                    temp_string.Clear();
                     //ExportNumValListToCSVFile(pathcsv, m_strbuildwavevalues);
-                }
+                }//for all 128 rows
                 ExportNumValListToCSVFile(pathcsv, m_strbuildwavevalues);
                 m_strbuildwavevalues.Clear();
                 
