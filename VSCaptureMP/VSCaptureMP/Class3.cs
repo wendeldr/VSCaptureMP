@@ -33,6 +33,7 @@ using System.Threading;
 using System.Runtime.Serialization.Json;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Security.Cryptography;
 
 
 namespace VSCaptureMP
@@ -126,7 +127,8 @@ namespace VSCaptureMP
         public StringBuilder m_strbuildvalues = new StringBuilder();
         public StringBuilder m_strbuildheaders = new StringBuilder();
         public List<WaveValResult> m_WaveValResultList = new List<WaveValResult>();
-        public StringBuilder m_strbuildwavevalues = new StringBuilder();
+        public StringBuilder m_strbuildwavevalues = new StringBuilder(100*1024*1024);//create with 100MB buffer to avoid lags, system max is 2GB
+        public string pathcsv_global;
         public bool m_transmissionstart = true;
         public bool m_transmissionstartUC = true;
         public string m_strTimestamp;
@@ -1719,6 +1721,70 @@ namespace VSCaptureMP
         }
 
 
+        public void EncryptAndWriteFile()
+        {
+            if(m_strbuildwavevalues.Length > 0)
+            {
+                //encrypt and write data
+                try
+                {
+                    // Open file for reading. 
+                    using (StreamWriter wrStream = new StreamWriter(pathcsv_global, true, Encoding.UTF8))
+                    {
+                        using(AesManaged aes = new AesManaged()) 
+                        {  
+                            //generator https://asecuritysite.com/encryption/keygen
+                            //passphrase U8A!sCsX7GTwGmRFr$Q
+                            //mode aes-256-cfb
+                            //Salt = 0x37,0x83,0x27,0x3A,0xA4,0xE8,0xDE,0x1C
+                            aes.Key = new byte[] {0x63,0x8E,0x28,0x4D,0x21,0xEC,0x4B,0x6E,0x93,0x95,0xD6,0x41,0x3C,0x69,0x72,0x82,0x23,0x68,0x4A,0xDF,0x60,0x3C,0xBF,0xFF,0xA1,0xE4,0x70,0xCA,0x50,0x6F,0xE6,0x7B};
+                            aes.IV = new byte[] {0xD8,0xF6,0xAA,0xAC,0x63,0x60,0x5E,0xA7,0xA1,0x9D,0x76,0x77,0xA4,0xD6,0xC5,0x8C};
+                            // Create encryptor    
+                            ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);  
+                            // Create MemoryStream    
+                            using(MemoryStream ms = new MemoryStream()) 
+                            {  
+                                // Create crypto stream using the CryptoStream class. This class is the key to encryption    
+                                // and encrypts and decrypts data from any given stream. In this case, we will pass a memory stream    
+                                // to encrypt    
+                                using(CryptoStream cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write)) 
+                                {
+                                    // Create StreamWriter and write data to a stream    
+                                    using(StreamWriter sw = new StreamWriter(cs))  
+                                    {
+                                        while(m_strbuildwavevalues.Length > 1024)//process 1KB at a time
+                                        {
+                                            sw.Write(m_strbuildwavevalues.ToString(0,1024));  //put data into encryptor
+                                            m_strbuildwavevalues.Remove(0,1024); //remove data that was encrpyted
+                                            wrStream.Write(ms.ToArray());//write encrypted data to file
+                                            ms.Flush(); //flush memory stream
+                                        }
+                                        if(m_strbuildwavevalues.Length > 0) //if data still exists
+                                        {
+                                            sw.Write(m_strbuildwavevalues.ToString());  //put data into encryptor
+                                            m_strbuildwavevalues.Clear(); //remove data that was encrpyted
+                                            wrStream.Write(ms.ToArray()); //write encrypted data to file
+                                            ms.Flush(); //flush memory stream
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        // close file stream. 
+                        wrStream.Close();
+                    }
+                }
+                catch (Exception _Exception)
+                {
+                    // Error. 
+                    Console.WriteLine("Exception caught in process: {0}", _Exception.ToString());
+                }
+                //write data
+                //ExportNumValListToCSVFile(pathcsv_global, m_strbuildwavevalues);
+                //clear buffer
+                m_strbuildwavevalues.Clear();
+            }
+        }
         public void SetFileTime(int t)
         {
             m_file_time_minutes = t;
@@ -1753,6 +1819,9 @@ namespace VSCaptureMP
                 
                 //update index
                 m_transmissionstartUC = true;
+                
+                //write current data to file
+                EncryptAndWriteFile();
             }
             else if(currentDateTime.Day != m_file_start_time.Day)//check for end of day roll over
             {
@@ -1769,6 +1838,9 @@ namespace VSCaptureMP
                 
                 //update index
                 m_transmissionstartUC = true;
+                
+                //write current data to file
+                EncryptAndWriteFile();
             }
             
             return string.Format("{0,4:D4}",m_file_index);
@@ -1809,14 +1881,17 @@ namespace VSCaptureMP
             if (wavevallistcount != 0)
             {
                 
-                string pathcsv = GetLogFilePath(time_now);
+                pathcsv_global = GetLogFilePath(time_now);
                 
-                //Console.WriteLine(pathcsv);
+                //Console.WriteLine(pathcsv_global);
                 
                 
                 //write header if needed
                 if(m_transmissionstartUC)
                 {
+                    //write version info
+                    //write data confidentiality statement
+                    //write header
                     m_strbuildwavevalues.Append("System TimeStamp UTC");
                     m_strbuildwavevalues.Append(',');
                     m_strbuildwavevalues.Append("Monitor TimeStamp");
@@ -1852,8 +1927,8 @@ namespace VSCaptureMP
                     m_strbuildwavevalues.Append("CSUM");
                     //m_strbuildwavevalues.Append(',');
                     m_strbuildwavevalues.AppendLine();
-                    ExportNumValListToCSVFile(pathcsv, m_strbuildwavevalues);
-                    m_strbuildwavevalues.Clear();
+                    //ExportNumValListToCSVFile(pathcsv_global, m_strbuildwavevalues);
+                    //m_strbuildwavevalues.Clear();
                     m_transmissionstartUC = false;
                 }
                 
@@ -1941,10 +2016,10 @@ namespace VSCaptureMP
                     
                     m_strbuildwavevalues.Append(temp_string.ToString());
                     temp_string.Clear();
-                    //ExportNumValListToCSVFile(pathcsv, m_strbuildwavevalues);
+                    //ExportNumValListToCSVFile(pathcsv_global, m_strbuildwavevalues);
                 }//for all 128 rows
-                ExportNumValListToCSVFile(pathcsv, m_strbuildwavevalues);
-                m_strbuildwavevalues.Clear();
+                //ExportNumValListToCSVFile(pathcsv_global, m_strbuildwavevalues);
+                //m_strbuildwavevalues.Clear();
                 
                 m_WaveValResultList.RemoveRange(0, wavevallistcount);
             }
