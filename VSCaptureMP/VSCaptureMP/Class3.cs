@@ -1729,7 +1729,11 @@ namespace VSCaptureMP
                 try
                 {
                     // Open file for reading. 
-                    using (StreamWriter wrStream = new StreamWriter(pathcsv_global, true, Encoding.UTF8))
+                    using (StreamWriter wrStream1 = new StreamWriter(pathcsv_global, true, Encoding.UTF8))
+                    {
+                        wrStream1.Write(m_strbuildwavevalues);
+                    }
+                    using (StreamWriter wrStream = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8))
                     {
                         using(AesManaged aes = new AesManaged()) 
                         {  
@@ -1741,31 +1745,24 @@ namespace VSCaptureMP
                             aes.IV = new byte[] {0xD8,0xF6,0xAA,0xAC,0x63,0x60,0x5E,0xA7,0xA1,0x9D,0x76,0x77,0xA4,0xD6,0xC5,0x8C};
                             // Create encryptor    
                             ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);  
-                            // Create MemoryStream    
-                            using(MemoryStream ms = new MemoryStream()) 
-                            {  
-                                // Create crypto stream using the CryptoStream class. This class is the key to encryption    
-                                // and encrypts and decrypts data from any given stream. In this case, we will pass a memory stream    
-                                // to encrypt    
-                                using(CryptoStream cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write)) 
+                            // Create crypto stream using the CryptoStream class. This class is the key to encryption    
+                            // and encrypts and decrypts data from any given stream. In this case, we will pass a memory stream    
+                            // to encrypt    
+                            using(CryptoStream cs = new CryptoStream(wrStream.BaseStream, encryptor, CryptoStreamMode.Write)) 
+                            {
+                                using (StreamWriter swEncrypt = new StreamWriter(cs))
                                 {
-                                    // Create StreamWriter and write data to a stream    
-                                    using(StreamWriter sw = new StreamWriter(cs))  
+                                    while(m_strbuildwavevalues.Length > 1024)//process 1KB at a time
                                     {
-                                        while(m_strbuildwavevalues.Length > 1024)//process 1KB at a time
-                                        {
-                                            sw.Write(m_strbuildwavevalues.ToString(0,1024));  //put data into encryptor
-                                            m_strbuildwavevalues.Remove(0,1024); //remove data that was encrpyted
-                                            wrStream.Write(ms.ToArray());//write encrypted data to file
-                                            ms.Flush(); //flush memory stream
-                                        }
-                                        if(m_strbuildwavevalues.Length > 0) //if data still exists
-                                        {
-                                            sw.Write(m_strbuildwavevalues.ToString());  //put data into encryptor
-                                            m_strbuildwavevalues.Clear(); //remove data that was encrpyted
-                                            wrStream.Write(ms.ToArray()); //write encrypted data to file
-                                            ms.Flush(); //flush memory stream
-                                        }
+                                        string data = m_strbuildwavevalues.ToString(0,1024);
+                                        swEncrypt.Write(data,0,1024);  //put data into encryptor
+                                        m_strbuildwavevalues.Remove(0,1024); //remove data that was encrpyted
+                                    }
+                                    if(m_strbuildwavevalues.Length > 0) //if data still exists
+                                    {
+                                        string data = m_strbuildwavevalues.ToString();
+                                        swEncrypt.Write(data,0,m_strbuildwavevalues.Length);  //put data into encryptor
+                                        m_strbuildwavevalues.Clear(); //remove data that was encrpyted
                                     }
                                 }
                             }
