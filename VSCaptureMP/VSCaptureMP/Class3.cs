@@ -154,6 +154,9 @@ namespace VSCaptureMP
         public DateTime m_file_end_time = new DateTime();
         public int m_file_index = 0;
         public List<ushort> physioIdList = new List<ushort>();
+        
+        public int m_file_row_index = 0;
+        public string m_MRN_string;
 
         public class NumericValResult
         {
@@ -167,6 +170,7 @@ namespace VSCaptureMP
         public class WaveValResult
         {
             public string Timestamp;
+            public DateTime dtTimestamp;
             public string Relativetimestamp;
             public ushort PhysioID;
             public byte[] Value;
@@ -749,6 +753,7 @@ namespace VSCaptureMP
                         break;
                     //Get Patient demographics
                     case DataConstants.NOM_ATTR_PT_ID:
+                        Read_MRN_IDLabelString(avaattribobjects);
                         break;
                     case DataConstants.NOM_ATTR_PT_NAME_GIVEN:
                         break;
@@ -903,7 +908,7 @@ namespace VSCaptureMP
 
             string strDateTime = dtDateTime.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture);
             Console.WriteLine("Time:{0}", strDateTime);
-            Console.WriteLine("Time:{0}", m_strTimestamp);
+            //Console.WriteLine("Time:{0}", m_strTimestamp);
 
 
             //ParsePacketType
@@ -1152,7 +1157,7 @@ namespace VSCaptureMP
             byte[] stringval = binreader5.ReadBytes(strmp.length);
 
             string label = Encoding.UTF8.GetString(stringval);
-            Console.WriteLine("Label String: {0}", label);
+            //Console.WriteLine("Label String: {0}", label);
         }
 
         public void ReadNumericObservationValue(byte[] avaattribobjects)
@@ -1201,11 +1206,11 @@ namespace VSCaptureMP
             m_NumericValList.Add(NumVal);
             m_NumValHeaders.Add(NumVal.PhysioID);
 
-            Console.WriteLine("Physiological ID: {0}", physio_id);
+            //Console.WriteLine("Physiological ID: {0}", physio_id);
             //Console.WriteLine("State: {0}", state);
             //Console.WriteLine("Unit code: {0}", unit_code);
-            Console.WriteLine("Value: {0}", valuestr);
-            Console.WriteLine();
+            //Console.WriteLine("Value: {0}", valuestr);
+            //Console.WriteLine();
         }
 
         public void ReadCompoundNumericObsValue(byte[] avaattribobjects)
@@ -1287,9 +1292,10 @@ namespace VSCaptureMP
             double ElapsedTimeMilliseonds = (currentRelativeTime - m_baseRelativeTime) * 125 / 1000;
             DateTime dtDateTime = m_baseDateTime.AddMilliseconds(ElapsedTimeMilliseonds);
             
-            string strDateTime = dtDateTime.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture);
+            //string strDateTime = dtDateTime.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture);
+            string strDateTime = dtDateTime.ToString("yyyyMMdd HH:mm:ss.fff", CultureInfo.InvariantCulture);
             //WaveVal.Timestamp = DateTime.Now.ToString();
-            
+            WaveVal.dtTimestamp = dtDateTime;
             WaveVal.Timestamp = strDateTime;
             //JFANNON 2-7-2020
             //WaveVal.PhysioID = physio_id;
@@ -1721,6 +1727,21 @@ namespace VSCaptureMP
         }
 
 
+        public void Read_MRN_IDLabelString(byte[] avaattribobjects)
+        {
+
+            MemoryStream memstream5 = new MemoryStream(avaattribobjects);
+            BinaryReader binreader5 = new BinaryReader(memstream5);
+
+            StringMP strmp = new StringMP();
+
+            strmp.length = correctendianshortus(binreader5.ReadUInt16());
+            //strmp.value1 = correctendianshortus(binreader5.ReadUInt16());
+            byte[] stringval = binreader5.ReadBytes(strmp.length);
+
+            m_MRN_string = Encoding.UTF8.GetString(stringval);
+        }
+        
         public void EncryptAndWriteFile()
         {
             if(m_strbuildwavevalues.Length > 0)
@@ -1728,11 +1749,20 @@ namespace VSCaptureMP
                 //encrypt and write data
                 try
                 {
-                    // Open file for reading. 
-                    using (StreamWriter wrStream1 = new StreamWriter(pathcsv_global, true, Encoding.UTF8))
+                    //write confidentiality file
+                    string pathconfidentiality = Path.Combine(Directory.GetCurrentDirectory(), "Data Confidentiality Statement.txt");
+                    if(File.Exists(pathconfidentiality) == false)
                     {
-                        wrStream1.Write(m_strbuildwavevalues);
+                        string[] writeText = new string[1];
+                        writeText[0] = "NOTE: The confidential information contained in this proprietary electronic file, transmission and attachments are the sole property of Deeptankar DeMazumder, and intended only for use by Deeptankar DeMazumder, and by an individual or entity explicitly designated by Deeptankar DeMazumder, and contain data that are privileged, confidential, protected and exempt from disclosure under applicable law. If the reader of this communication is not the intended recipient, or the employee or agent responsible for delivering this communication to the intended recipient, you are hereby notified that any dissemination, distribution, copying or disclosure of this electronic transmission and attachments is strictly prohibited. If you have received this transmission in error, please notify Deeptankar DeMazumder immediately (PrIMe.CHAOS.Deep@gmail.com), and delete the original file, transmission and attachments from any computer, server or other electronic recording or storage device or medium that has not been authorized by Deeptankar DeMazumder. Receipt or access by anyone other than the intended recipient is not a waiver of attorney-client, physician-patient or any other privilege. Thank you for your attention and cooperation.";
+                        File.WriteAllLines(pathconfidentiality, writeText, Encoding.UTF8);
                     }
+                    
+                    // Open file for reading. 
+                    //using (StreamWriter wrStream1 = new StreamWriter(pathcsv_global, true, Encoding.UTF8))
+                    //{
+                    //    wrStream1.Write(m_strbuildwavevalues);
+                    //}
                     using (StreamWriter wrStream = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8))
                     {
                         using(AesManaged aes = new AesManaged()) 
@@ -1826,7 +1856,7 @@ namespace VSCaptureMP
                 m_file_end_time = m_file_start_time.AddMinutes(m_file_time_minutes);
                 
                 m_file_index = 0;//reset to 0
-                
+                m_file_row_index = 0;//reset index at day roll over
                 //write temp file
                 string[] writeText = new string[2];
                 writeText[0] = string.Format("{0}",currentDateTime.Ticks);
@@ -1887,13 +1917,22 @@ namespace VSCaptureMP
                 if(m_transmissionstartUC)
                 {
                     //write version info
+                    m_strbuildwavevalues.Append("MRN=");
+                    m_strbuildwavevalues.Append( m_MRN_string ); //MRN not currently being ready by the software JF 3-25-2020
+                    m_strbuildwavevalues.Append(",SW_Version=1.0.0,HW_Version=B.2.0,MAC=");
+                    m_strbuildwavevalues.Append( GetDefaultMacAddress() );
+                    m_strbuildwavevalues.Append(",Recording_Start=");
+                    m_strbuildwavevalues.Append(time_now.ToString("yyyyMMdd HH:mm:ss.fff", CultureInfo.InvariantCulture));
+                    m_strbuildwavevalues.AppendLine();
                     //write data confidentiality statement
+                    m_strbuildwavevalues.Append("NOTE: The confidential information contained in this proprietary electronic file, transmission and attachments are the sole property of Deeptankar DeMazumder, and intended only for use by Deeptankar DeMazumder, and by an individual or entity explicitly designated by Deeptankar DeMazumder, and contain data that are privileged, confidential, protected and exempt from disclosure under applicable law. If the reader of this communication is not the intended recipient, or the employee or agent responsible for delivering this communication to the intended recipient, you are hereby notified that any dissemination, distribution, copying or disclosure of this electronic transmission and attachments is strictly prohibited. If you have received this transmission in error, please notify Deeptankar DeMazumder immediately (PrIMe.CHAOS.Deep@gmail.com), and delete the original file, transmission and attachments from any computer, server or other electronic recording or storage device or medium that has not been authorized by Deeptankar DeMazumder. Receipt or access by anyone other than the intended recipient is not a waiver of attorney-client, physician-patient or any other privilege. Thank you for your attention and cooperation.");
+                    m_strbuildwavevalues.AppendLine();
                     //write header
+                    m_strbuildwavevalues.Append("Index");
+                    m_strbuildwavevalues.Append(',');
                     m_strbuildwavevalues.Append("System TimeStamp UTC");
                     m_strbuildwavevalues.Append(',');
                     m_strbuildwavevalues.Append("Monitor TimeStamp");
-                    m_strbuildwavevalues.Append(',');
-                    m_strbuildwavevalues.Append("Index");
                     m_strbuildwavevalues.Append(',');
                     m_strbuildwavevalues.Append("NLS_NOM_ECG_ELEC_POTL_I");
                     m_strbuildwavevalues.Append(',');
@@ -1934,12 +1973,18 @@ namespace VSCaptureMP
                 //write data
                 for (int indexx = 0; indexx < 128; indexx++)
                 {
-                    temp_string.Append(time_now.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture));
+                    temp_string.Append(m_file_row_index.ToString());
+                    m_file_row_index = m_file_row_index + 1;
                     temp_string.Append(',');
-                    temp_string.Append(m_WaveValResultList[0].Timestamp);
+                    //temp_string.Append(time_now.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture));
+                    temp_string.Append(time_now.ToString("yyyyMMdd HH:mm:ss.fff", CultureInfo.InvariantCulture));
                     temp_string.Append(',');
-                    temp_string.Append(indexx.ToString());
+                    //temp_string.Append(m_WaveValResultList[0].Timestamp);
+                    temp_string.Append(m_WaveValResultList[0].dtTimestamp.ToString("yyyyMMdd HH:mm:ss.fff", CultureInfo.InvariantCulture));
+                    m_WaveValResultList[0].dtTimestamp = m_WaveValResultList[0].dtTimestamp.AddMilliseconds(2);
                     temp_string.Append(',');
+                    //temp_string.Append(indexx.ToString());
+                    //temp_string.Append(',');
                     
                     for ( int i = 0; i < data_array.Length; ++i ) 
                     {
