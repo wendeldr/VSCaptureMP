@@ -584,24 +584,30 @@ namespace VSCaptureMP
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_AWAY_CO2")))));
                     break;
                 case 10:
-                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x08))); //count
-                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x20))); //length
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x0B))); //count
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x2C))); //length
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_ECG_ELEC_POTL_I")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_ECG_ELEC_POTL_II")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_ECG_ELEC_POTL_III")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PULS_OXIM_PLETH")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_RESP")))));
-                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_ART")))));
-                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_ART_PULM")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_VEN_CENT")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_ART_ABP")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_EEG_NAMES_EEG_CHAN1_LBL")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_EEG_NAMES_EEG_CHAN2_LBL")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_EEG_NAMES_EEG_CHAN3_LBL")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_EEG_NAMES_EEG_CHAN4_LBL")))));
                     physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_ECG_ELEC_POTL_I);
                     physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_ECG_ELEC_POTL_II);
                     physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_ECG_ELEC_POTL_III);
                     physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_PLETH);
                     physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_RESP);
-                    physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_PRESS_BLD_ART);
-                    physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_PRESS_BLD_ART_PULM);
                     physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_PRESS_BLD_VEN_CENT);
+                    physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_PRESS_BLD_ART_ABP);
+                    physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_EEG_ELEC_POTL_CRTX);
+                    physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_EEG_ELEC_POTL_CRTX);
+                    physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_EEG_ELEC_POTL_CRTX);
+                    physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_EEG_ELEC_POTL_CRTX);
                     break;
             }
         }
