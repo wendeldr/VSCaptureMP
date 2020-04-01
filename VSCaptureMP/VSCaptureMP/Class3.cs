@@ -1797,10 +1797,10 @@ namespace VSCaptureMP
                     }
                     
                     // Open file for reading. 
-                    using (StreamWriter wrStream1 = new StreamWriter(pathcsv_global, true, Encoding.UTF8))
-                    {
-                        wrStream1.Write(m_strbuildwavevalues);
-                    }
+                    //using (StreamWriter wrStream1 = new StreamWriter(pathcsv_global, true, Encoding.UTF8))
+                    //{
+                    //    wrStream1.Write(m_strbuildwavevalues);
+                    //}
                     StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8);
                     //using (StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8))
                     //{
