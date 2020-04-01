@@ -157,6 +157,7 @@ namespace VSCaptureMP
         
         public int m_file_row_index = 0;
         public string m_MRN_string;
+        public bool m_change_file_for_MRN = false;
 
         public class NumericValResult
         {
@@ -683,6 +684,7 @@ namespace VSCaptureMP
             {
                 do
                 {
+                    //Console.WriteLine("SendCycledExtendedPollDataRequest loop");
                     WriteBuffer(DataConstants.ext_poll_request_msg5);
                     //WriteBuffer(DataConstants.poll_request_msg);
                     await Task.Delay(nmillisecond);
@@ -701,6 +703,7 @@ namespace VSCaptureMP
             {
                 do
                 {
+                    //Console.WriteLine("KeepConnectionAlive loop");
                     SendMDSCreateEventResult();
                     await Task.Delay(nmillisecond);
                 }
@@ -708,6 +711,24 @@ namespace VSCaptureMP
             }
 
         }
+        
+        public async Task SendSinglePollDataRequest_PT_ID(int nInterval)
+        {
+            int nmillisecond = nInterval;
+            if (nmillisecond != 0)
+            {
+                do
+                {
+                    //Console.WriteLine("SendSinglePollDataRequest_PT_ID loop");
+                    WriteBuffer(DataConstants.ext_poll_request_pt_id);
+                    await Task.Delay(nmillisecond);
+
+                }
+                while (true);
+            }
+            WriteBuffer(DataConstants.ext_poll_request_pt_id);
+        }
+        
 
         public void ParseMDSCreateEventReport(byte[] readmdsconnectbuffer)
         {
@@ -1063,6 +1084,9 @@ namespace VSCaptureMP
                         break;
                     case DataConstants.NOM_ATTR_SA_CALIB_I16:
                         ReadSaCalibrationSpecifications(avaattribobjects);
+                        break;
+                    case DataConstants.NOM_ATTR_PT_ID:
+                        Read_MRN_IDLabelString(avaattribobjects);
                         break;
                     default:
                         // unknown attribute -> do nothing
@@ -1744,8 +1768,16 @@ namespace VSCaptureMP
             strmp.length = correctendianshortus(binreader5.ReadUInt16());
             //strmp.value1 = correctendianshortus(binreader5.ReadUInt16());
             byte[] stringval = binreader5.ReadBytes(strmp.length);
-
-            m_MRN_string = Encoding.UTF8.GetString(stringval);
+            
+            string tempString = Encoding.UTF8.GetString(stringval);
+            if( tempString != m_MRN_string)
+            {
+                m_MRN_string = tempString;
+                m_change_file_for_MRN = true;
+                Console.WriteLine("MRN Changed");
+            }
+            
+            //Console.WriteLine("MRN="+m_MRN_string);
         }
         
         public void EncryptAndWriteFile()
@@ -1765,12 +1797,14 @@ namespace VSCaptureMP
                     }
                     
                     // Open file for reading. 
-                    //using (StreamWriter wrStream1 = new StreamWriter(pathcsv_global, true, Encoding.UTF8))
-                    //{
-                    //    wrStream1.Write(m_strbuildwavevalues);
-                    //}
-                    using (StreamWriter wrStream = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8))
+                    using (StreamWriter wrStream1 = new StreamWriter(pathcsv_global, true, Encoding.UTF8))
                     {
+                        wrStream1.Write(m_strbuildwavevalues);
+                    }
+                    StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8);
+                    //using (StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8))
+                    //{
+                        wrStreamAES.AutoFlush = true;
                         using(AesManaged aes = new AesManaged()) 
                         {  
                             //generator https://asecuritysite.com/encryption/keygen
@@ -1784,7 +1818,7 @@ namespace VSCaptureMP
                             // Create crypto stream using the CryptoStream class. This class is the key to encryption    
                             // and encrypts and decrypts data from any given stream. In this case, we will pass a memory stream    
                             // to encrypt    
-                            using(CryptoStream cs = new CryptoStream(wrStream.BaseStream, encryptor, CryptoStreamMode.Write)) 
+                            using(CryptoStream cs = new CryptoStream(wrStreamAES.BaseStream, encryptor, CryptoStreamMode.Write)) 
                             {
                                 using (StreamWriter swEncrypt = new StreamWriter(cs))
                                 {
@@ -1803,15 +1837,18 @@ namespace VSCaptureMP
                                 }
                             }
                         }
-                        // close file stream. 
-                        wrStream.Close();
-                    }
+                        //Console.WriteLine("test1");
+                        //wrStreamAES.Flush();
+                        //Console.WriteLine("test2");
+                    //}
+                    //Console.WriteLine("test3");
                 }
                 catch (Exception _Exception)
                 {
                     // Error. 
                     Console.WriteLine("Exception caught in process: {0}", _Exception.ToString());
                 }
+                //Console.WriteLine("test4");
                 //write data
                 //ExportNumValListToCSVFile(pathcsv_global, m_strbuildwavevalues);
                 //clear buffer
@@ -1827,7 +1864,7 @@ namespace VSCaptureMP
             string pathtmp = Path.Combine(Directory.GetCurrentDirectory(), "CurrentFileIndex.tmp");
             int fileIndex = 0;
             DateTime fileDate = new DateTime();
-            if( (m_transmissionstartUC == true) || (currentDateTime > m_file_end_time) )//if start of program or time expired...
+            if( (m_transmissionstartUC == true) || (currentDateTime > m_file_end_time) || (m_change_file_for_MRN == true))//if start of program or time expired...or MRN changed
             {
                 //update file times
                 m_file_start_time = currentDateTime;
@@ -1852,6 +1889,9 @@ namespace VSCaptureMP
                 
                 //update index
                 m_transmissionstartUC = true;
+                
+                //reset MRN flag
+                m_change_file_for_MRN = false;
                 
                 //write current data to file
                 EncryptAndWriteFile();

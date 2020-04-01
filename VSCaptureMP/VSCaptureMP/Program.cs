@@ -684,6 +684,10 @@ namespace VSCaptureMP
                 Task.Run(() => _serialPort.SendCycledExtendedPollDataRequest(nInterval));
 
                 WaitForMilliSeconds(500);
+                
+                Task.Run(() => _serialPort.SendSinglePollDataRequest_PT_ID(30000));//30 seconds
+                
+                WaitForMilliSeconds(500);
 
                 if (nWaveformSet != 0)
                 {
