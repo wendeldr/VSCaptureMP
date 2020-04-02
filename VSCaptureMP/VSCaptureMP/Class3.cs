@@ -585,6 +585,7 @@ namespace VSCaptureMP
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_AWAY_CO2")))));
                     break;
                 case 10:
+                    //if changing this, then update header info in ExportWaveUC()
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x0B))); //count
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x2C))); //length
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_ECG_ELEC_POTL_I")))));
@@ -1780,11 +1781,18 @@ namespace VSCaptureMP
             //Console.WriteLine("MRN="+m_MRN_string);
         }
         
+        public void write_console_time_debug()
+        {
+            string strDateTime = DateTime.UtcNow.ToString("yyyyMMdd HH:mm:ss.fff", CultureInfo.InvariantCulture);
+            Console.WriteLine("DEBUG:Time:{0}", strDateTime);
+        }
+        
         public void EncryptAndWriteFile()
         {
             if(m_strbuildwavevalues.Length > 0)
             {
                 //encrypt and write data
+                write_console_time_debug();
                 try
                 {
                     //write confidentiality file
@@ -1801,10 +1809,10 @@ namespace VSCaptureMP
                     //{
                     //    wrStream1.Write(m_strbuildwavevalues);
                     //}
-                    StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8);
-                    //using (StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8))
-                    //{
-                        wrStreamAES.AutoFlush = true;
+                    //StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8);
+                    using (StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8))
+                    {
+                        //wrStreamAES.AutoFlush = true;
                         using(AesManaged aes = new AesManaged()) 
                         {  
                             //generator https://asecuritysite.com/encryption/keygen
@@ -1822,11 +1830,11 @@ namespace VSCaptureMP
                             {
                                 using (StreamWriter swEncrypt = new StreamWriter(cs))
                                 {
-                                    while(m_strbuildwavevalues.Length > 1024)//process 1KB at a time
+                                    while(m_strbuildwavevalues.Length > 1048576)//process 1MB at a time
                                     {
-                                        string data = m_strbuildwavevalues.ToString(0,1024);
-                                        swEncrypt.Write(data,0,1024);  //put data into encryptor
-                                        m_strbuildwavevalues.Remove(0,1024); //remove data that was encrpyted
+                                        string data = m_strbuildwavevalues.ToString(0,1048576);
+                                        swEncrypt.Write(data,0,1048576);  //put data into encryptor
+                                        m_strbuildwavevalues.Remove(0,1048576); //remove data that was encrpyted
                                     }
                                     if(m_strbuildwavevalues.Length > 0) //if data still exists
                                     {
@@ -1838,9 +1846,9 @@ namespace VSCaptureMP
                             }
                         }
                         //Console.WriteLine("test1");
-                        //wrStreamAES.Flush();
+                        wrStreamAES.Close();
                         //Console.WriteLine("test2");
-                    //}
+                    }
                     //Console.WriteLine("test3");
                 }
                 catch (Exception _Exception)
@@ -1853,6 +1861,7 @@ namespace VSCaptureMP
                 //ExportNumValListToCSVFile(pathcsv_global, m_strbuildwavevalues);
                 //clear buffer
                 m_strbuildwavevalues.Clear();
+                write_console_time_debug();
             }
         }
         public void SetFileTime(int t)
@@ -1990,11 +1999,17 @@ namespace VSCaptureMP
                     m_strbuildwavevalues.Append(',');
                     m_strbuildwavevalues.Append("NLS_NOM_RESP");
                     m_strbuildwavevalues.Append(',');
-                    m_strbuildwavevalues.Append("NLS_NOM_PRESS_BLD_ART");
-                    m_strbuildwavevalues.Append(',');
-                    m_strbuildwavevalues.Append("NLS_NOM_PRESS_BLD_ART_PULM");
-                    m_strbuildwavevalues.Append(',');
                     m_strbuildwavevalues.Append("NLS_NOM_PRESS_BLD_VEN_CENT");
+                    m_strbuildwavevalues.Append(',');
+                    m_strbuildwavevalues.Append("NLS_NOM_PRESS_BLD_ART_ABP");
+                    m_strbuildwavevalues.Append(',');
+                    m_strbuildwavevalues.Append("NLS_EEG_NAMES_EEG_CHAN1_LBL");
+                    m_strbuildwavevalues.Append(',');
+                    m_strbuildwavevalues.Append("NLS_EEG_NAMES_EEG_CHAN2_LBL");
+                    m_strbuildwavevalues.Append(',');
+                    m_strbuildwavevalues.Append("NLS_EEG_NAMES_EEG_CHAN3_LBL");
+                    m_strbuildwavevalues.Append(',');
+                    m_strbuildwavevalues.Append("NLS_EEG_NAMES_EEG_CHAN4_LBL");
                     m_strbuildwavevalues.Append(',');
                     
                     foreach (WaveValResult WavValResult in m_WaveValResultList)
