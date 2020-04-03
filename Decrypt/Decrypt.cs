@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Aes_Example
 {
@@ -44,17 +46,30 @@ namespace Aes_Example
 
 	    CryptoStream cs = new CryptoStream(fsCrypt, myAes.CreateDecryptor(), CryptoStreamMode.Read);
 
-	    FileStream fsOut = new FileStream(outputFile, FileMode.Create);
+	    //FileStream fsOut = new FileStream(outputFile, FileMode.Create);
 
 	    int read;
-	    byte[] buffer = new byte[1048576];
+	    //byte[] buffer = new byte[1048576];
+	    byte[] buffer = new byte[1024];
 
 	    try
 	    {
-		while ((read = cs.Read(buffer, 0, buffer.Length)) > 0)
-		{
-		    fsOut.Write(buffer, 0, read);
-		}
+	    	 using (System.IO.StreamWriter file = new System.IO.StreamWriter(outputFile, true))
+        	{
+		    	bool flag = true;
+				while ((read = cs.Read(buffer, 0, buffer.Length)) > 0)
+				{
+					string converted = Encoding.UTF8.GetString(buffer, 0, read);
+					converted = Regex.Replace(converted, @"\00", "");
+					if (flag){
+						System.Console.WriteLine(converted);
+						flag = false;
+					}       
+	            	file.WriteLine(converted);
+	            	//fsOut.Write(buffer, 0, read);
+
+	        	}
+			}
 	    }
 	    catch (CryptographicException ex_CryptographicException)
 	    {
@@ -75,7 +90,7 @@ namespace Aes_Example
 	    }
 	    finally
 	    {
-		fsOut.Close();
+		//fsOut.Close();
 		fsCrypt.Close();
 	    }
 	    }
