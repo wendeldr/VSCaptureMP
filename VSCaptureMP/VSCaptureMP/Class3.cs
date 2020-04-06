@@ -158,6 +158,8 @@ namespace VSCaptureMP
         public int m_file_row_index = 0;
         public string m_MRN_string;
         public bool m_change_file_for_MRN = false;
+        
+        public bool WriteToDebug = true;
 
         public class NumericValResult
         {
@@ -1758,6 +1760,26 @@ namespace VSCaptureMP
         }
 
 
+        public void WriteToDebugFile(string msg)
+        {
+            if(WriteToDebug == true)
+            {
+                try
+                {
+                    using (StreamWriter sw = File.AppendText(Path.Combine(Directory.GetCurrentDirectory(), "debuglog.txt"))) 
+                    {
+                        sw.WriteLine(DateTime.UtcNow.ToString("yyyyMMdd HH:mm:ss.fff UTC : ", CultureInfo.InvariantCulture) + msg);
+                    }	
+
+                }
+                catch (Exception _Exception)
+                {
+                    // Error. 
+                    Console.WriteLine("Exception caught in process: {0}", _Exception.ToString());
+                }
+            }
+        }
+        
         public void Read_MRN_IDLabelString(byte[] avaattribobjects)
         {
 
@@ -1793,6 +1815,7 @@ namespace VSCaptureMP
             {
                 //encrypt and write data
                 write_console_time_debug();
+                WriteToDebugFile("Starting File Encrypt and Write");
                 try
                 {
                     //write confidentiality file
@@ -1862,6 +1885,7 @@ namespace VSCaptureMP
                 //clear buffer
                 m_strbuildwavevalues.Clear();
                 write_console_time_debug();
+                WriteToDebugFile("Ending File Encrypt and Write");
             }
         }
         public void SetFileTime(int t)
@@ -1875,6 +1899,7 @@ namespace VSCaptureMP
             DateTime fileDate = new DateTime();
             if( (m_transmissionstartUC == true) || (currentDateTime > m_file_end_time) || (m_change_file_for_MRN == true))//if start of program or time expired...or MRN changed
             {
+                WriteToDebugFile("File Index Updated");
                 //update file times
                 m_file_start_time = currentDateTime;
                 m_file_end_time = m_file_start_time.AddMinutes(m_file_time_minutes);
@@ -1907,6 +1932,7 @@ namespace VSCaptureMP
             }
             else if(currentDateTime.Day != m_file_start_time.Day)//check for end of day roll over
             {
+                WriteToDebugFile("File Index Updated EOD");
                 m_file_start_time = currentDateTime;
                 m_file_end_time = m_file_start_time.AddMinutes(m_file_time_minutes);
                 
@@ -1974,7 +2000,7 @@ namespace VSCaptureMP
                     //write version info
                     m_strbuildwavevalues.Append("MRN=");
                     m_strbuildwavevalues.Append( m_MRN_string ); //MRN not currently being ready by the software JF 3-25-2020
-                    m_strbuildwavevalues.Append(",SW_Version=1.0.0,HW_Version=B.2.0,MAC=");
+                    m_strbuildwavevalues.Append(",SW_Version=1.2.0,HW_Version=B.2.0,MAC=");
                     m_strbuildwavevalues.Append( GetDefaultMacAddress() );
                     m_strbuildwavevalues.Append(",Recording_Start=");
                     m_strbuildwavevalues.Append(time_now.ToString("yyyyMMdd HH:mm:ss.fff", CultureInfo.InvariantCulture));
@@ -2275,14 +2301,14 @@ namespace VSCaptureMP
             try
             {
                 // Open file for reading. 
-                //using (FileStream _FileStream = new FileStream(_FileName, FileMode.Append, FileAccess.Write))
-                //{
-                //    // Writes a block of bytes to this stream using data from a byte array
-                //    _FileStream.Write(_ByteArray, 0, nWriteLength);
-                //
-                //    // close file stream. 
-                //    _FileStream.Close();
-                //}
+                using (FileStream _FileStream = new FileStream(_FileName, FileMode.Append, FileAccess.Write))
+                {
+                    // Writes a block of bytes to this stream using data from a byte array
+                    _FileStream.Write(_ByteArray, 0, nWriteLength);
+                
+                    // close file stream. 
+                    _FileStream.Close();
+                }
     
                 return true;
             }

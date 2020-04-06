@@ -678,6 +678,8 @@ namespace VSCaptureMP
 
                 if (nCSVset > 0 && nCSVset < 4) _serialPort.m_csvexportset = nCSVset;
                 
+                _serialPort.WriteToDebugFile("Program Starting");
+                
                 _serialPort.SendWaveAssociationRequest();
                 
                 //Send Extended PollData Requests cycled every second
@@ -751,7 +753,7 @@ namespace VSCaptureMP
             finally
             {
                 _serialPort.StopTransfer();
-
+                _serialPort.WriteToDebugFile("Program Closing");
                 _serialPort.Close();
 
             }
