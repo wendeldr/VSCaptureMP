@@ -159,7 +159,7 @@ namespace VSCaptureMP
         public string m_MRN_string;
         public bool m_change_file_for_MRN = false;
         
-        public bool WriteToDebug = true;
+        public bool WriteToDebug = false;
 
         public class NumericValResult
         {
@@ -267,7 +267,7 @@ namespace VSCaptureMP
                         CreateFrameListFromByte(copyarray[i]);
                     }
 
-                    ByteArrayToFile(path, copyarray, copyarray.GetLength(0));
+                    //ByteArrayToFile(path, copyarray, copyarray.GetLength(0));
                     bytesreadtotal += lenread;
                     /*if (FrameList.Count > 0)
                     {
@@ -665,7 +665,8 @@ namespace VSCaptureMP
 
         public async Task SendCycledExtendedPollWaveDataRequest(int nInterval)
         {
-            int nmillisecond = nInterval /* * 1000 */;
+            //int nmillisecond = nInterval /* * 1000 */;
+            int nmillisecond = 4*60*1000;//4 min*60 sec per min * 1000 ms per sec
             if (nmillisecond != 0)
             {
                 do
