@@ -1988,8 +1988,10 @@ namespace VSCaptureMP
             
             if (wavevallistcount != 0)
             {
+                WriteToDebugFile("ExportWaveUC 1");
                 
                 pathcsv_global = GetLogFilePath(time_now);
+                
                 
                 //Console.WriteLine(pathcsv_global);
                 
@@ -1997,6 +1999,7 @@ namespace VSCaptureMP
                 //write header if needed
                 if(m_transmissionstartUC)
                 {
+                    WriteToDebugFile("Begin Write Header to File");
                     //write version info
                     m_strbuildwavevalues.Append("MRN=");
                     m_strbuildwavevalues.Append( m_MRN_string ); //MRN not currently being ready by the software JF 3-25-2020
@@ -2053,6 +2056,7 @@ namespace VSCaptureMP
                     //ExportNumValListToCSVFile(pathcsv_global, m_strbuildwavevalues);
                     //m_strbuildwavevalues.Clear();
                     m_transmissionstartUC = false;
+                    WriteToDebugFile("End Write Header to File");
                 }
                 
                 double[] data_array = new double[physioIdList.Count];
@@ -2151,6 +2155,10 @@ namespace VSCaptureMP
                 //m_strbuildwavevalues.Clear();
                 
                 m_WaveValResultList.RemoveRange(0, wavevallistcount);
+            }
+            else
+            {
+                WriteToDebugFile("ExportWaveUC 0");
             }
         }
 
