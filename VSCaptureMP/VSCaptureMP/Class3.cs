@@ -2004,7 +2004,7 @@ namespace VSCaptureMP
                     //write version info
                     m_strbuildwavevalues.Append("MRN=");
                     m_strbuildwavevalues.Append( m_MRN_string ); //MRN not currently being ready by the software JF 3-25-2020
-                    m_strbuildwavevalues.Append(",SW_Version=1.2.0,HW_Version=B.2.0,MAC=");
+                    m_strbuildwavevalues.Append(",SW_Version=1.2.1,HW_Version=B.2.0,MAC=");
                     m_strbuildwavevalues.Append( GetDefaultMacAddress() );
                     m_strbuildwavevalues.Append(",Recording_Start=");
                     m_strbuildwavevalues.Append(time_now.ToString("yyyyMMdd HH:mm:ss.fff", CultureInfo.InvariantCulture));
