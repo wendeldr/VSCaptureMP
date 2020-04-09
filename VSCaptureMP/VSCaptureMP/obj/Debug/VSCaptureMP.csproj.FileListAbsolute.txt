@@ -4,3 +4,8 @@
 /home/pi/GIT_Workspace/VSCap/VSCaptureMP/VSCaptureMP/VSCaptureMP/obj/Debug/VSCaptureMP.csprojAssemblyReference.cache
 /home/pi/GIT_Workspace/VSCap/VSCaptureMP/VSCaptureMP/VSCaptureMP/obj/Debug/VSCaptureMP.exe
 /home/pi/GIT_Workspace/VSCap/VSCaptureMP/VSCaptureMP/VSCaptureMP/obj/Debug/VSCaptureMP.pdb
+/home/chaos-icu/git/VSCaptureMP/VSCaptureMP/VSCaptureMP/bin/Debug/VSCaptureMP.exe.config
+/home/chaos-icu/git/VSCaptureMP/VSCaptureMP/VSCaptureMP/bin/Debug/VSCaptureMP.exe
+/home/chaos-icu/git/VSCaptureMP/VSCaptureMP/VSCaptureMP/bin/Debug/VSCaptureMP.pdb
+/home/chaos-icu/git/VSCaptureMP/VSCaptureMP/VSCaptureMP/obj/Debug/VSCaptureMP.exe
+/home/chaos-icu/git/VSCaptureMP/VSCaptureMP/VSCaptureMP/obj/Debug/VSCaptureMP.pdb

@@ -160,6 +160,8 @@ namespace VSCaptureMP
         public bool m_change_file_for_MRN = false;
         
         public bool WriteToDebug = false;
+        public string SW_Version_String = "1.2.1";
+
 
         public class NumericValResult
         {
@@ -1801,7 +1803,9 @@ namespace VSCaptureMP
                 Console.WriteLine("MRN Changed");
             }
             
-            //Console.WriteLine("MRN="+m_MRN_string);
+            Console.WriteLine("MRN= "+m_MRN_string);
+            Console.WriteLine("SW Version= "+ SW_Version_String);
+
         }
         
         public void write_console_time_debug()
@@ -2004,7 +2008,9 @@ namespace VSCaptureMP
                     //write version info
                     m_strbuildwavevalues.Append("MRN=");
                     m_strbuildwavevalues.Append( m_MRN_string ); //MRN not currently being ready by the software JF 3-25-2020
-                    m_strbuildwavevalues.Append(",SW_Version=1.2.1,HW_Version=B.2.0,MAC=");
+                    m_strbuildwavevalues.Append(",");
+                    m_strbuildwavevalues.Append(SW_Version_String);
+                    m_strbuildwavevalues.Append(", HW_Version =B.2.0,MAC=");
                     m_strbuildwavevalues.Append( GetDefaultMacAddress() );
                     m_strbuildwavevalues.Append(",Recording_Start=");
                     m_strbuildwavevalues.Append(time_now.ToString("yyyyMMdd HH:mm:ss.fff", CultureInfo.InvariantCulture));
