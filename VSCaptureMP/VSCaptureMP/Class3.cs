@@ -2008,7 +2008,7 @@ namespace VSCaptureMP
                     //write version info
                     m_strbuildwavevalues.Append("MRN=");
                     m_strbuildwavevalues.Append( m_MRN_string ); //MRN not currently being ready by the software JF 3-25-2020
-                    m_strbuildwavevalues.Append(",");
+                    m_strbuildwavevalues.Append(",SW_Version=");
                     m_strbuildwavevalues.Append(SW_Version_String);
                     m_strbuildwavevalues.Append(", HW_Version =B.2.0,MAC=");
                     m_strbuildwavevalues.Append( GetDefaultMacAddress() );
