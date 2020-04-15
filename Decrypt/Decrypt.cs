@@ -49,10 +49,11 @@ namespace Aes_Example
                 System.Console.WriteLine("Decrypting *.aes in {0}", args[0]);
                 System.Console.WriteLine("Outputting to folder {0} orginized by date.", args[1]);
                 string[] aesFiles = Directory.GetFiles(args[0], "*.aes", SearchOption.AllDirectories);
-                string[] datFiles = Directory.GetFiles(args[0], "*.dat", SearchOption.AllDirectories);
+                string[] datFiles = Directory.GetFiles(args[1], "*.dat", SearchOption.AllDirectories);
 
                 Parallel.For(0, aesFiles.Length, i=>{
                     try{
+                        System.Console.WriteLine("{0}/{1}",i,aesFiles.Length);
 
                         if (!Array.Exists(datFiles, element =>  Path.GetFileName(element) == Path.GetFileName(aesFiles[i]).Substring(0,Path.GetFileName(aesFiles[i]).Length - 4)) ){
                             string[] parts =  Path.GetFileName(aesFiles[i]).Split(new [] { '_' });
