@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Threading;
 namespace Aes_Example
 {
     class AesExample
@@ -47,30 +48,40 @@ namespace Aes_Example
                 
             }else{
                 System.Console.WriteLine("Decrypting *.aes in {0}", args[0]);
-                System.Console.WriteLine("Outputting to folder {0} orginized by date.", args[1]);
+                System.Console.WriteLine("Outputting to folder {0} orginized by room.", args[1]);
                 string[] aesFiles = Directory.GetFiles(args[0], "*.aes", SearchOption.AllDirectories);
                 string[] datFiles = Directory.GetFiles(args[1], "*.dat", SearchOption.AllDirectories);
 
-                Parallel.For(0, aesFiles.Length, i=>{
-                    try{
-                        System.Console.WriteLine("{0}/{1}",i,aesFiles.Length);
+                int count = 0;
+                int total =  aesFiles.Length;
+                TimeSpan reportPeriod = TimeSpan.FromMinutes(0.1);
 
-                        if (!Array.Exists(datFiles, element =>  Path.GetFileName(element) == Path.GetFileName(aesFiles[i]).Substring(0,Path.GetFileName(aesFiles[i]).Length - 4)) ){
-                            string[] parts =  Path.GetFileName(aesFiles[i]).Split(new [] { '_' });
-                            string folder_path = Path.Combine(args[1],parts[1],parts[0]);
+                using (new Timer(
+                    _ => Console.WriteLine("{0}: Decrypted {1}/{2} files", DateTime.Now, count, total),
+                    null, reportPeriod, reportPeriod))
+                    {
+                    Parallel.For(0, aesFiles.Length, i=>{
+                        try{
+                            if (!Array.Exists(datFiles, element =>  Path.GetFileName(element) == Path.GetFileName(aesFiles[i]).Substring(0,Path.GetFileName(aesFiles[i]).Length - 4)) ){
+                                string[] parts =  Path.GetFileName(aesFiles[i]).Split(new [] { '_' });
+                                string folder_path = Path.Combine(args[1],parts[0],parts[1]);
 
-                            new DirectoryInfo(folder_path).Create();
+                                new DirectoryInfo(folder_path).Create();
 
-                            string outfile = Path.Combine(folder_path, System.IO.Path.ChangeExtension(Path.GetFileName(aesFiles[i]), null));
-                            System.Console.WriteLine("Decrypting file: {0} >> {1}", aesFiles[i], outfile);
+                                string outfile = Path.Combine(folder_path, System.IO.Path.ChangeExtension(Path.GetFileName(aesFiles[i]), null));
+                                //System.Console.WriteLine("Decrypting file: {0} >> {1}", aesFiles[i], outfile);
 
-                            FileDecrypt(aesFiles[i], outfile);
+                                FileDecrypt(aesFiles[i], outfile);
+                            }
+                            Interlocked.Increment(ref count);
+
+                        }catch (Exception ex){
+                            Console.WriteLine("Error in Parfor: " + ex.Message);
                         }
-                    }catch (Exception ex){
-                        Console.WriteLine("Error in Parfor: " + ex.Message);
-                    }
 
-                });
+                    });
+                }
+            Console.WriteLine("{0}: Done", DateTime.Now);
             }
             return 0;
         }
