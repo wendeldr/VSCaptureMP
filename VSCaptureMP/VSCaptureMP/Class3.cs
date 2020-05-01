@@ -1796,15 +1796,19 @@ namespace VSCaptureMP
             byte[] stringval = binreader5.ReadBytes(strmp.length);
             
             string tempString = Encoding.UTF8.GetString(stringval);
+            Console.Clear();
+
             if( tempString != m_MRN_string)
             {
                 m_MRN_string = tempString;
                 m_change_file_for_MRN = true;
+
                 Console.WriteLine("MRN Changed");
             }
             
             Console.WriteLine("MRN= "+m_MRN_string);
             Console.WriteLine("SW Version= "+ SW_Version_String);
+
 
         }
         

@@ -9,3 +9,9 @@
 /home/chaos-icu/git/VSCaptureMP/VSCaptureMP/VSCaptureMP/bin/Debug/VSCaptureMP.pdb
 /home/chaos-icu/git/VSCaptureMP/VSCaptureMP/VSCaptureMP/obj/Debug/VSCaptureMP.exe
 /home/chaos-icu/git/VSCaptureMP/VSCaptureMP/VSCaptureMP/obj/Debug/VSCaptureMP.pdb
+/home/chaos_icu/git/VSCaptureMP/VSCaptureMP/VSCaptureMP/bin/Debug/VSCaptureMP.exe.config
+/home/chaos_icu/git/VSCaptureMP/VSCaptureMP/VSCaptureMP/bin/Debug/VSCaptureMP.exe
+/home/chaos_icu/git/VSCaptureMP/VSCaptureMP/VSCaptureMP/bin/Debug/VSCaptureMP.pdb
+/home/chaos_icu/git/VSCaptureMP/VSCaptureMP/VSCaptureMP/obj/Debug/VSCaptureMP.csproj.CoreCompileInputs.cache
+/home/chaos_icu/git/VSCaptureMP/VSCaptureMP/VSCaptureMP/obj/Debug/VSCaptureMP.exe
+/home/chaos_icu/git/VSCaptureMP/VSCaptureMP/VSCaptureMP/obj/Debug/VSCaptureMP.pdb
