@@ -297,6 +297,7 @@ namespace VSCaptureMP
             catch (Exception ex)
             {
                 Console.WriteLine("Error opening/writing to serial port :: " + ex.Message, "Error!");
+                Console.WriteLine(ex.ToString());
             }
 
 

@@ -437,16 +437,26 @@ namespace VSCaptureMP
             else
             {
                 Console.WriteLine("Select the Port to which Intellivue Monitor is to be connected, Available Ports:");
+                string serial_port = string.Empty;
                 foreach (string s in SerialPort.GetPortNames())
                 {
                     Console.WriteLine(" {0}", s);
+                    serial_port = s;
                 }
 
 
                 Console.Write("COM port({0}): ", _serialPort.PortName.ToString());
                 //JFANNON 12/27/2019
                 //portName = Console.ReadLine();
-                portName = "/dev/ttyS0";
+                if (serial_port == ""){
+                    portName = "/dev/ttyS0";
+                }
+                else
+                {
+                    portName = serial_port;
+                }
+
+                Console.Write("\nUsing {0}", portName);
 
             }
 
@@ -741,6 +751,7 @@ namespace VSCaptureMP
             catch (Exception ex)
             {
                 Console.WriteLine("Error opening/writing to serial port :: " + ex.Message, "Error!");
+                Console.WriteLine(ex.ToString());
                 //JFANNON 01/05/2020
                 Console.WriteLine( 
                     "\nHelpLink ---\n{0}", ex.HelpLink );
