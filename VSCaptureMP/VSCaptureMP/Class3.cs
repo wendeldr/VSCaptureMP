@@ -20,6 +20,7 @@
     //V0.2 fixed V0.1 build errors, adding data output
     //V0.3 working on fixing serial port error
     //V0.4 serial port should have been fixed.  Added wave option and time entry to program.cs, added new wave define in class2.cs, and changed file name determination in class3.cs.
+	//V1.2.2 roll version for build and parts build on 8-2020
 
 using System;
 using System.Collections.Generic;
@@ -160,7 +161,7 @@ namespace VSCaptureMP
         public bool m_change_file_for_MRN = false;
         
         public bool WriteToDebug = false;
-        public string SW_Version_String = "1.2.1";
+        public string SW_Version_String = "1.2.2";
 
 
         public class NumericValResult
