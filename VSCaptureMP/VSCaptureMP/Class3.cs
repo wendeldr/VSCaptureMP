@@ -35,7 +35,7 @@ using System.Runtime.Serialization.Json;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Security.Cryptography;
-using System.IO.Compression;
+
 
 namespace VSCaptureMP
 {
@@ -161,7 +161,7 @@ namespace VSCaptureMP
         public bool m_change_file_for_MRN = false;
         
         public bool WriteToDebug = false;
-        public string SW_Version_String = "1.3.0";
+        public string SW_Version_String = "1.2.2";
 
 
         public class NumericValResult
@@ -1820,182 +1820,6 @@ namespace VSCaptureMP
             Console.WriteLine("DEBUG:Time:{0}", strDateTime);
         }
         
-		public void createCSV()
-		{
-			using (StreamWriter f1 = new StreamWriter(pathcsv_global, true, Encoding.UTF8))
-			{
-				while(m_strbuildwavevalues.Length > 1048576)//process 1MB at a time
-				{
-					string data = m_strbuildwavevalues.ToString(0,1048576);
-					f1.Write(data,0,1048576);  //put data into encryptor
-					m_strbuildwavevalues.Remove(0,1048576); //remove data that was encrpyted
-				}
-				if(m_strbuildwavevalues.Length > 0) //if data still exists
-				{
-					string data = m_strbuildwavevalues.ToString();
-					f1.Write(data,0,m_strbuildwavevalues.Length);  //put data into encryptor
-					m_strbuildwavevalues.Clear(); //remove data that was encrpyted
-				}
-			}
-		}
-		
-		public void compressCSV2ZIP()
-		{
-			var fileToCompress = new FileInfo(pathcsv_global);
-			using (FileStream originalFileStream = fileToCompress.OpenRead())
-            {
-                using (FileStream compressedFileStream = File.Create(pathcsv_global + ".gz"))
-                {
-                    using (GZipStream compressionStream = new GZipStream(compressedFileStream, CompressionMode.Compress))
-                    {
-                        originalFileStream.CopyTo(compressionStream);
-                    }
-                }
-            }
-		}
-		
-		public void encryptZIP2AES()
-		{
-			var fileToencrypt = new FileInfo(pathcsv_global+".gz");
-			using (FileStream originalFileStream = fileToencrypt.OpenRead())
-            {
-				using (StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".gz"+".aes", true, Encoding.UTF8))
-				{
-					using(AesManaged aes = new AesManaged()) 
-					{  
-						aes.Key = new byte[] {0x63,0x8E,0x28,0x4D,0x21,0xEC,0x4B,0x6E,0x93,0x95,0xD6,0x41,0x3C,0x69,0x72,0x82,0x23,0x68,0x4A,0xDF,0x60,0x3C,0xBF,0xFF,0xA1,0xE4,0x70,0xCA,0x50,0x6F,0xE6,0x7B};
-						aes.IV = new byte[] {0xD8,0xF6,0xAA,0xAC,0x63,0x60,0x5E,0xA7,0xA1,0x9D,0x76,0x77,0xA4,0xD6,0xC5,0x8C};
-						
-						ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);  
-	 
-						using(CryptoStream cs = new CryptoStream(wrStreamAES.BaseStream, encryptor, CryptoStreamMode.Write)) 
-						{
-							originalFileStream.CopyTo(cs);
-						}
-					}
-					wrStreamAES.Close();
-				}
-			}
-		}
-		
-		public void GZipEncryptAndWriteDataFile()
-		{
-			StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".gz"+".aes", true, Encoding.UTF8);
-			AesManaged aes = new AesManaged() ;
-			aes.Key = new byte[] {0x63,0x8E,0x28,0x4D,0x21,0xEC,0x4B,0x6E,0x93,0x95,0xD6,0x41,0x3C,0x69,0x72,0x82,0x23,0x68,0x4A,0xDF,0x60,0x3C,0xBF,0xFF,0xA1,0xE4,0x70,0xCA,0x50,0x6F,0xE6,0x7B};
-			aes.IV = new byte[] {0xD8,0xF6,0xAA,0xAC,0x63,0x60,0x5E,0xA7,0xA1,0x9D,0x76,0x77,0xA4,0xD6,0xC5,0x8C};
-					
-			ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);  
- 
-			CryptoStream cs = new CryptoStream(wrStreamAES.BaseStream, encryptor, CryptoStreamMode.Write);
-			GZipStream compressionStream = new GZipStream(cs, CompressionMode.Compress);
-			MemoryStream f1 = new MemoryStream();
-			
-			
-			Console.WriteLine("m_strbuildwavevalues.Length = " + m_strbuildwavevalues.Length.ToString());
-			//while(m_strbuildwavevalues.Length > 1048576)//process 1MB at a time
-			//{
-			//	string data = m_strbuildwavevalues.ToString(0,1048576);
-			//	f1.Write(Encoding.UTF8.GetBytes(data), 0,1048576);  //put data into encryptor
-			//	m_strbuildwavevalues.Remove(0,1048576); //remove data that was encrpyted
-			//}
-			//if(m_strbuildwavevalues.Length > 0) //if data still exists
-			//{
-			//	string data = m_strbuildwavevalues.ToString();
-			//	f1.Write(Encoding.UTF8.GetBytes(data),0,m_strbuildwavevalues.Length);  //put data into encryptor
-			//	m_strbuildwavevalues.Clear(); //remove data that was encrpyted
-			//}
-			if(m_strbuildwavevalues.Length > 0) //if data still exists
-			{
-				byte[] data = Encoding.UTF8.GetBytes(m_strbuildwavevalues.ToString());
-				f1.Write(data,0,data.Length);  //put data into encryptor
-				m_strbuildwavevalues.Clear(); //remove data that was encrpyted
-			}
-			Console.WriteLine("f1.Length = " + f1.Length.ToString());
-			//f1.CopyTo(compressionStream);
-			compressionStream.Write(f1.ToArray(), 0, f1.ToArray().Length);
-			Console.WriteLine("f1 Copied");
-			compressionStream.Flush();
-			Console.WriteLine("compressionStream flushed");
-			cs.FlushFinalBlock();
-			Console.WriteLine("cs flushed");
-
-			//Console.WriteLine("cs.Length = " + cs.Length.ToString());
-			wrStreamAES.Flush();
-			Console.WriteLine("wrStreamAES flushed");
-			
-			Console.WriteLine("Closing f1");
-			f1.Close();
-			Console.WriteLine("Closing compressionStream");
-			compressionStream.Close();
-			Console.WriteLine("Closing cs");
-			cs.Close();
-			//wrStreamAES gets closed by cs
-			//Console.WriteLine("Closing wrStreamAES");
-			//wrStreamAES.Close();
-		}
-		
-		public void GZipEncryptAndWriteDataFile_orig()
-		{
-			using (StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".gz"+".aes", true, Encoding.UTF8))
-			{
-				using(AesManaged aes = new AesManaged()) 
-				{  
-					aes.Key = new byte[] {0x63,0x8E,0x28,0x4D,0x21,0xEC,0x4B,0x6E,0x93,0x95,0xD6,0x41,0x3C,0x69,0x72,0x82,0x23,0x68,0x4A,0xDF,0x60,0x3C,0xBF,0xFF,0xA1,0xE4,0x70,0xCA,0x50,0x6F,0xE6,0x7B};
-					aes.IV = new byte[] {0xD8,0xF6,0xAA,0xAC,0x63,0x60,0x5E,0xA7,0xA1,0x9D,0x76,0x77,0xA4,0xD6,0xC5,0x8C};
-					
-					ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);  
- 
-					using(CryptoStream cs = new CryptoStream(wrStreamAES.BaseStream, encryptor, CryptoStreamMode.Write)) 
-					{
-						using (GZipStream compressionStream = new GZipStream(cs, CompressionMode.Compress))
-						{
-							using (MemoryStream f1 = new MemoryStream())
-							{
-								Console.WriteLine("m_strbuildwavevalues.Length = " + m_strbuildwavevalues.Length.ToString());
-								while(m_strbuildwavevalues.Length > 1048576)//process 1MB at a time
-								{
-									string data = m_strbuildwavevalues.ToString(0,1048576);
-									f1.Write(Encoding.UTF8.GetBytes(data), 0,1048576);  //put data into encryptor
-									m_strbuildwavevalues.Remove(0,1048576); //remove data that was encrpyted
-								}
-								if(m_strbuildwavevalues.Length > 0) //if data still exists
-								{
-									string data = m_strbuildwavevalues.ToString();
-									f1.Write(Encoding.UTF8.GetBytes(data),0,m_strbuildwavevalues.Length);  //put data into encryptor
-									m_strbuildwavevalues.Clear(); //remove data that was encrpyted
-								}
-								Console.WriteLine("f1.Length = " + f1.Length.ToString());
-								//f1.CopyTo(compressionStream);
-								compressionStream.Write(f1.ToArray(), 0, f1.ToArray().Length);
-								Console.WriteLine("f1 Copied");
-								compressionStream.Flush();
-								Console.WriteLine("compressionStream flushed");
-								compressionStream.Close();
-								Console.WriteLine("compressionStream closed");
-								//Console.WriteLine("compressionStream.Length = " + compressionStream.Length.ToString());
-								cs.Flush();
-								Console.WriteLine("cs flushed");
-								cs.Close();
-								Console.WriteLine("cs closed");
-								//Console.WriteLine("cs.Length = " + cs.Length.ToString());
-								wrStreamAES.Flush();
-								Console.WriteLine("wrStreamAES flushed");
-								wrStreamAES.Close();
-							}	
-							//compressionStream.Flush();
-							//Console.WriteLine("compressionStream.Length = " + compressionStream.Length.ToString());
-						}
-						//cs.Flush();
-						//Console.WriteLine("cs.Length = " + cs.Length.ToString());
-					}
-				}
-				//wrStreamAES.Flush();
-				//Console.WriteLine("wrStreamAES.Length = " + wrStreamAES.Length.ToString());
-				//wrStreamAES.Close();
-			}
-		}
-
         public void EncryptAndWriteFile()
         {
             if(m_strbuildwavevalues.Length > 0)
@@ -2020,53 +1844,45 @@ namespace VSCaptureMP
                     //    wrStream1.Write(m_strbuildwavevalues);
                     //}
                     //StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8);
-					
-					//createCSV();
-					//compressCSV2ZIP();
-					//encryptZIP2AES();
-					
-					//GZipEncryptAndWriteDataFile();
-					GZipEncryptAndWriteDataFile_orig();
-					
-                    ////using (StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8))
-                    ////{
-                    ////    //wrStreamAES.AutoFlush = true;
-                    ////    using(AesManaged aes = new AesManaged()) 
-                    ////    {  
-                    ////        //generator https://asecuritysite.com/encryption/keygen
-                    ////        //passphrase U8A!sCsX7GTwGmRFr$Q
-                    ////        //mode aes-256-cfb
-                    ////        //Salt = 0x37,0x83,0x27,0x3A,0xA4,0xE8,0xDE,0x1C
-                    ////        aes.Key = new byte[] {0x63,0x8E,0x28,0x4D,0x21,0xEC,0x4B,0x6E,0x93,0x95,0xD6,0x41,0x3C,0x69,0x72,0x82,0x23,0x68,0x4A,0xDF,0x60,0x3C,0xBF,0xFF,0xA1,0xE4,0x70,0xCA,0x50,0x6F,0xE6,0x7B};
-                    ////        aes.IV = new byte[] {0xD8,0xF6,0xAA,0xAC,0x63,0x60,0x5E,0xA7,0xA1,0x9D,0x76,0x77,0xA4,0xD6,0xC5,0x8C};
-                    ////        // Create encryptor    
-                    ////        ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);  
-                    ////        // Create crypto stream using the CryptoStream class. This class is the key to encryption    
-                    ////        // and encrypts and decrypts data from any given stream. In this case, we will pass a memory stream    
-                    ////        // to encrypt    
-                    ////        using(CryptoStream cs = new CryptoStream(wrStreamAES.BaseStream, encryptor, CryptoStreamMode.Write)) 
-                    ////        {
-                    ////            using (StreamWriter swEncrypt = new StreamWriter(cs))
-                    ////            {
-                    ////                while(m_strbuildwavevalues.Length > 1048576)//process 1MB at a time
-                    ////                {
-                    ////                    string data = m_strbuildwavevalues.ToString(0,1048576);
-                    ////                    swEncrypt.Write(data,0,1048576);  //put data into encryptor
-                    ////                    m_strbuildwavevalues.Remove(0,1048576); //remove data that was encrpyted
-                    ////                }
-                    ////                if(m_strbuildwavevalues.Length > 0) //if data still exists
-                    ////                {
-                    ////                    string data = m_strbuildwavevalues.ToString();
-                    ////                    swEncrypt.Write(data,0,m_strbuildwavevalues.Length);  //put data into encryptor
-                    ////                    m_strbuildwavevalues.Clear(); //remove data that was encrpyted
-                    ////                }
-                    ////            }
-                    ////        }
-                    ////    }
-                    ////    //Console.WriteLine("test1");
-                    ////    wrStreamAES.Close();
-                    ////    //Console.WriteLine("test2");
-                    ////}
+                    using (StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8))
+                    {
+                        //wrStreamAES.AutoFlush = true;
+                        using(AesManaged aes = new AesManaged()) 
+                        {  
+                            //generator https://asecuritysite.com/encryption/keygen
+                            //passphrase U8A!sCsX7GTwGmRFr$Q
+                            //mode aes-256-cfb
+                            //Salt = 0x37,0x83,0x27,0x3A,0xA4,0xE8,0xDE,0x1C
+                            aes.Key = new byte[] {0x63,0x8E,0x28,0x4D,0x21,0xEC,0x4B,0x6E,0x93,0x95,0xD6,0x41,0x3C,0x69,0x72,0x82,0x23,0x68,0x4A,0xDF,0x60,0x3C,0xBF,0xFF,0xA1,0xE4,0x70,0xCA,0x50,0x6F,0xE6,0x7B};
+                            aes.IV = new byte[] {0xD8,0xF6,0xAA,0xAC,0x63,0x60,0x5E,0xA7,0xA1,0x9D,0x76,0x77,0xA4,0xD6,0xC5,0x8C};
+                            // Create encryptor    
+                            ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);  
+                            // Create crypto stream using the CryptoStream class. This class is the key to encryption    
+                            // and encrypts and decrypts data from any given stream. In this case, we will pass a memory stream    
+                            // to encrypt    
+                            using(CryptoStream cs = new CryptoStream(wrStreamAES.BaseStream, encryptor, CryptoStreamMode.Write)) 
+                            {
+                                using (StreamWriter swEncrypt = new StreamWriter(cs))
+                                {
+                                    while(m_strbuildwavevalues.Length > 1048576)//process 1MB at a time
+                                    {
+                                        string data = m_strbuildwavevalues.ToString(0,1048576);
+                                        swEncrypt.Write(data,0,1048576);  //put data into encryptor
+                                        m_strbuildwavevalues.Remove(0,1048576); //remove data that was encrpyted
+                                    }
+                                    if(m_strbuildwavevalues.Length > 0) //if data still exists
+                                    {
+                                        string data = m_strbuildwavevalues.ToString();
+                                        swEncrypt.Write(data,0,m_strbuildwavevalues.Length);  //put data into encryptor
+                                        m_strbuildwavevalues.Clear(); //remove data that was encrpyted
+                                    }
+                                }
+                            }
+                        }
+                        //Console.WriteLine("test1");
+                        wrStreamAES.Close();
+                        //Console.WriteLine("test2");
+                    }
                     //Console.WriteLine("test3");
                 }
                 catch (Exception _Exception)
