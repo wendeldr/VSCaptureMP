@@ -21,6 +21,7 @@
     //V0.3 working on fixing serial port error
     //V0.4 serial port should have been fixed.  Added wave option and time entry to program.cs, added new wave define in class2.cs, and changed file name determination in class3.cs.
 	//V1.2.2 roll version for build and parts build on 8-2020
+	//V1.2.3 remove AES encryption, add stats output as seperate file
 
 using System;
 using System.Collections.Generic;
@@ -130,6 +131,7 @@ namespace VSCaptureMP
         public List<WaveValResult> m_WaveValResultList = new List<WaveValResult>();
         public StringBuilder m_strbuildwavevalues = new StringBuilder(100*1024*1024);//create with 100MB buffer to avoid lags, system max is 2GB
         public string pathcsv_global;
+		public string pathstats_global;
         public bool m_transmissionstart = true;
         public bool m_transmissionstartUC = true;
         public string m_strTimestamp;
@@ -161,7 +163,16 @@ namespace VSCaptureMP
         public bool m_change_file_for_MRN = false;
         
         public bool WriteToDebug = false;
-        public string SW_Version_String = "1.2.2";
+        public string SW_Version_String = "1.2.3";
+		
+		//JFANNON 10/9/2020
+		public string file_data_start_time_PI_string = "";
+		public string file_data_end_time_PI_string = "";
+		public string file_data_start_time_MON_string = "";
+		public string file_data_end_time_MON_string = "";
+		public List<string> physioIdDataExists = new List<string>();
+		public List<int> physioIdDataCount = new List<int>();
+		public int file_data_entries = 0;
 
 
         public class NumericValResult
@@ -606,16 +617,38 @@ namespace VSCaptureMP
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_EEG_NAMES_EEG_CHAN3_LBL")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_EEG_NAMES_EEG_CHAN4_LBL")))));
                     physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_ECG_ELEC_POTL_I);
+					physioIdDataExists.Add("False");
+					physioIdDataCount.Add(0);
                     physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_ECG_ELEC_POTL_II);
+					physioIdDataExists.Add("False");
+					physioIdDataCount.Add(0);
                     physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_ECG_ELEC_POTL_III);
+					physioIdDataExists.Add("False");
+					physioIdDataCount.Add(0);
                     physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_PLETH);
+					physioIdDataExists.Add("False");
+					physioIdDataCount.Add(0);
                     physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_RESP);
+					physioIdDataExists.Add("False");
+					physioIdDataCount.Add(0);
                     physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_PRESS_BLD_VEN_CENT);
+					physioIdDataExists.Add("False");
+					physioIdDataCount.Add(0);
                     physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_PRESS_BLD_ART_ABP);
+					physioIdDataExists.Add("False");
+					physioIdDataCount.Add(0);
                     physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_EEG_ELEC_POTL_CRTX);
+					physioIdDataExists.Add("False");
+					physioIdDataCount.Add(0);
                     physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_EEG_ELEC_POTL_CRTX);
+					physioIdDataExists.Add("False");
+					physioIdDataCount.Add(0);
                     physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_EEG_ELEC_POTL_CRTX);
+					physioIdDataExists.Add("False");
+					physioIdDataCount.Add(0);
                     physioIdList.Add( (ushort)IntelliVue.AlertSource.NOM_EEG_ELEC_POTL_CRTX);
+					physioIdDataExists.Add("False");
+					physioIdDataCount.Add(0);
                     break;
             }
         }
@@ -1837,52 +1870,86 @@ namespace VSCaptureMP
                         writeText[0] = "NOTE: The confidential information contained in this proprietary electronic file, transmission and attachments are the sole property of Deeptankar DeMazumder, and intended only for use by Deeptankar DeMazumder, and by an individual or entity explicitly designated by Deeptankar DeMazumder, and contain data that are privileged, confidential, protected and exempt from disclosure under applicable law. If the reader of this communication is not the intended recipient, or the employee or agent responsible for delivering this communication to the intended recipient, you are hereby notified that any dissemination, distribution, copying or disclosure of this electronic transmission and attachments is strictly prohibited. If you have received this transmission in error, please notify Deeptankar DeMazumder immediately (PrIMe.CHAOS.Deep@gmail.com), and delete the original file, transmission and attachments from any computer, server or other electronic recording or storage device or medium that has not been authorized by Deeptankar DeMazumder. Receipt or access by anyone other than the intended recipient is not a waiver of attorney-client, physician-patient or any other privilege. Thank you for your attention and cooperation.";
                         File.WriteAllLines(pathconfidentiality, writeText, Encoding.UTF8);
                     }
+					
+					//current time for stats file
+					string strCurrentTime = DateTime.UtcNow.ToString("yyyyMMdd HH:mm:ss.fff", CultureInfo.InvariantCulture);
                     
                     // Open file for reading. 
-                    //using (StreamWriter wrStream1 = new StreamWriter(pathcsv_global, true, Encoding.UTF8))
-                    //{
-                    //    wrStream1.Write(m_strbuildwavevalues);
-                    //}
-                    //StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8);
-                    using (StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8))
+                    using (StreamWriter wrStream1 = new StreamWriter(pathcsv_global, true, Encoding.UTF8))
                     {
-                        //wrStreamAES.AutoFlush = true;
-                        using(AesManaged aes = new AesManaged()) 
-                        {  
-                            //generator https://asecuritysite.com/encryption/keygen
-                            //passphrase U8A!sCsX7GTwGmRFr$Q
-                            //mode aes-256-cfb
-                            //Salt = 0x37,0x83,0x27,0x3A,0xA4,0xE8,0xDE,0x1C
-                            aes.Key = new byte[] {0x63,0x8E,0x28,0x4D,0x21,0xEC,0x4B,0x6E,0x93,0x95,0xD6,0x41,0x3C,0x69,0x72,0x82,0x23,0x68,0x4A,0xDF,0x60,0x3C,0xBF,0xFF,0xA1,0xE4,0x70,0xCA,0x50,0x6F,0xE6,0x7B};
-                            aes.IV = new byte[] {0xD8,0xF6,0xAA,0xAC,0x63,0x60,0x5E,0xA7,0xA1,0x9D,0x76,0x77,0xA4,0xD6,0xC5,0x8C};
-                            // Create encryptor    
-                            ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);  
-                            // Create crypto stream using the CryptoStream class. This class is the key to encryption    
-                            // and encrypts and decrypts data from any given stream. In this case, we will pass a memory stream    
-                            // to encrypt    
-                            using(CryptoStream cs = new CryptoStream(wrStreamAES.BaseStream, encryptor, CryptoStreamMode.Write)) 
-                            {
-                                using (StreamWriter swEncrypt = new StreamWriter(cs))
-                                {
-                                    while(m_strbuildwavevalues.Length > 1048576)//process 1MB at a time
-                                    {
-                                        string data = m_strbuildwavevalues.ToString(0,1048576);
-                                        swEncrypt.Write(data,0,1048576);  //put data into encryptor
-                                        m_strbuildwavevalues.Remove(0,1048576); //remove data that was encrpyted
-                                    }
-                                    if(m_strbuildwavevalues.Length > 0) //if data still exists
-                                    {
-                                        string data = m_strbuildwavevalues.ToString();
-                                        swEncrypt.Write(data,0,m_strbuildwavevalues.Length);  //put data into encryptor
-                                        m_strbuildwavevalues.Clear(); //remove data that was encrpyted
-                                    }
-                                }
-                            }
-                        }
-                        //Console.WriteLine("test1");
-                        wrStreamAES.Close();
-                        //Console.WriteLine("test2");
+                        wrStream1.Write(m_strbuildwavevalues);
                     }
+					
+					//write stats file
+					string MACAddress = GetDefaultMacAddress();
+					
+					pathstats_global = Path.Combine(Directory.GetCurrentDirectory(), MACAddress + "_FileStats.csv");
+					string[] writeStats = new string[1];
+					//file header
+					if(File.Exists(pathstats_global) == false)
+                    {
+                        writeStats[0] = "Filename,MAC address,Requested File Time(minutes),File Write Time,File Data Start Time PI,File Data End Time PI,File Data Start Time MONITOR,File Data End Time MONITOR,file datapoints(2ms),";
+						writeStats[0] = writeStats[0] + "NLS_NOM_ECG_ELEC_POTL_I_exists,NLS_NOM_ECG_ELEC_POTL_I_count,NLS_NOM_ECG_ELEC_POTL_II_exists,NLS_NOM_ECG_ELEC_POTL_II_count,NLS_NOM_ECG_ELEC_POTL_III_exists,NLS_NOM_ECG_ELEC_POTL_III_count,NLS_NOM_PULS_OXIM_PLETH_exists,NLS_NOM_PULS_OXIM_PLETH_count,NLS_NOM_RESP_exists,NLS_NOM_RESP_count,NLS_NOM_PRESS_BLD_VEN_CENT_exists,NLS_NOM_PRESS_BLD_VEN_CENT_count,NLS_NOM_PRESS_BLD_ART_ABP_exists,NLS_NOM_PRESS_BLD_ART_ABP_count,NLS_EEG_NAMES_EEG_CHAN1_LBL_exists,NLS_EEG_NAMES_EEG_CHAN1_LBL_count,NLS_EEG_NAMES_EEG_CHAN2_LBL_exists,NLS_EEG_NAMES_EEG_CHAN2_LBL_count,NLS_EEG_NAMES_EEG_CHAN3_LBL_exists,NLS_EEG_NAMES_EEG_CHAN3_LBL_count,NLS_EEG_NAMES_EEG_CHAN4_LBL_exists,NLS_EEG_NAMES_EEG_CHAN4_LBL_count,";;
+                        File.WriteAllLines(pathstats_global, writeStats, Encoding.UTF8);
+					}
+					// file entries
+					writeStats[0] = pathcsv_global + "," + MACAddress + "," + m_file_time_minutes.ToString() + "," + strCurrentTime + "," + file_data_start_time_PI_string + "," + file_data_end_time_PI_string + "," + file_data_start_time_MON_string + "," + file_data_end_time_MON_string + "," + file_data_entries.ToString() + ",";
+					for ( int i = 0; i < physioIdDataExists.Count; ++i ) 
+                    {
+                        writeStats[0] = writeStats[0] + physioIdDataExists[i] + "," + physioIdDataCount[i].ToString() + ",";
+                    }
+					
+                    File.AppendAllLines(pathstats_global, writeStats, Encoding.UTF8);
+					
+					//reset stats tracking of wave data
+					for ( int i = 0; i < physioIdDataExists.Count; ++i ) 
+                    {
+							physioIdDataExists[i] = "False";
+							physioIdDataCount[i] = 0;
+                    }
+					file_data_entries = 0;
+					
+					//write AES file
+                    //StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8);
+                    //using (StreamWriter wrStreamAES = new StreamWriter(pathcsv_global+".aes", true, Encoding.UTF8))
+                    //{
+                    //    //wrStreamAES.AutoFlush = true;
+                    //    using(AesManaged aes = new AesManaged()) 
+                    //    {  
+                    //        //generator https://asecuritysite.com/encryption/keygen
+                    //        //passphrase U8A!sCsX7GTwGmRFr$Q
+                    //        //mode aes-256-cfb
+                    //        //Salt = 0x37,0x83,0x27,0x3A,0xA4,0xE8,0xDE,0x1C
+                    //        aes.Key = new byte[] {0x63,0x8E,0x28,0x4D,0x21,0xEC,0x4B,0x6E,0x93,0x95,0xD6,0x41,0x3C,0x69,0x72,0x82,0x23,0x68,0x4A,0xDF,0x60,0x3C,0xBF,0xFF,0xA1,0xE4,0x70,0xCA,0x50,0x6F,0xE6,0x7B};
+                    //        aes.IV = new byte[] {0xD8,0xF6,0xAA,0xAC,0x63,0x60,0x5E,0xA7,0xA1,0x9D,0x76,0x77,0xA4,0xD6,0xC5,0x8C};
+                    //        // Create encryptor    
+                    //        ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);  
+                    //        // Create crypto stream using the CryptoStream class. This class is the key to encryption    
+                    //        // and encrypts and decrypts data from any given stream. In this case, we will pass a memory stream    
+                    //        // to encrypt    
+                    //        using(CryptoStream cs = new CryptoStream(wrStreamAES.BaseStream, encryptor, CryptoStreamMode.Write)) 
+                    //        {
+                    //            using (StreamWriter swEncrypt = new StreamWriter(cs))
+                    //            {
+                    //                while(m_strbuildwavevalues.Length > 1048576)//process 1MB at a time
+                    //                {
+                    //                    string data = m_strbuildwavevalues.ToString(0,1048576);
+                    //                    swEncrypt.Write(data,0,1048576);  //put data into encryptor
+                    //                    m_strbuildwavevalues.Remove(0,1048576); //remove data that was encrpyted
+                    //                }
+                    //                if(m_strbuildwavevalues.Length > 0) //if data still exists
+                    //                {
+                    //                    string data = m_strbuildwavevalues.ToString();
+                    //                    swEncrypt.Write(data,0,m_strbuildwavevalues.Length);  //put data into encryptor
+                    //                    m_strbuildwavevalues.Clear(); //remove data that was encrpyted
+                    //                }
+                    //            }
+                    //        }
+                    //    }
+                    //    //Console.WriteLine("test1");
+                    //    wrStreamAES.Close();
+                    //    //Console.WriteLine("test2");
+                    //}
                     //Console.WriteLine("test3");
                 }
                 catch (Exception _Exception)
@@ -2003,7 +2070,6 @@ namespace VSCaptureMP
                 
                 pathcsv_global = GetLogFilePath(time_now);
                 
-                
                 //Console.WriteLine(pathcsv_global);
                 
                 
@@ -2059,6 +2125,8 @@ namespace VSCaptureMP
                         if(physioIdList.Contains(WavValResult.PhysioID) == false)
                         {
                             physioIdList.Add((ushort)WavValResult.PhysioID);
+							physioIdDataExists.Add("False");
+							physioIdDataCount.Add(0);
                             m_strbuildwavevalues.Append(string.Format("{0}", Enum.GetName(typeof(IntelliVue.AlertSource), WavValResult.PhysioID)));  
                             m_strbuildwavevalues.Append(',');
                         }
@@ -2077,14 +2145,26 @@ namespace VSCaptureMP
                 //write data
                 for (int indexx = 0; indexx < 128; indexx++)
                 {
+					file_data_entries = file_data_entries + 1;
                     temp_string.Append(m_file_row_index.ToString());
                     m_file_row_index = m_file_row_index + 1;
                     temp_string.Append(',');
                     //temp_string.Append(time_now.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture));
-                    temp_string.Append(time_now.ToString("yyyyMMdd HH:mm:ss.fff", CultureInfo.InvariantCulture));
+					file_data_end_time_PI_string = time_now.ToString("yyyyMMdd HH:mm:ss.fff", CultureInfo.InvariantCulture);
+					if(file_data_start_time_PI_string == "")
+					{
+						file_data_start_time_PI_string = file_data_end_time_PI_string;
+					}
+                    temp_string.Append(file_data_end_time_PI_string);
+					
                     temp_string.Append(',');
                     //temp_string.Append(m_WaveValResultList[0].Timestamp);
-                    temp_string.Append(m_WaveValResultList[0].dtTimestamp.ToString("yyyyMMdd HH:mm:ss.fff", CultureInfo.InvariantCulture));
+					file_data_end_time_MON_string = m_WaveValResultList[0].dtTimestamp.ToString("yyyyMMdd HH:mm:ss.fff", CultureInfo.InvariantCulture);
+					if(file_data_start_time_MON_string == "")
+					{
+						file_data_start_time_MON_string = file_data_end_time_MON_string;
+					}
+                    temp_string.Append(file_data_end_time_MON_string);
                     m_WaveValResultList[0].dtTimestamp = m_WaveValResultList[0].dtTimestamp.AddMilliseconds(2);
                     temp_string.Append(',');
                     //temp_string.Append(indexx.ToString());
@@ -2148,6 +2228,8 @@ namespace VSCaptureMP
                         if(data_array[i].ToString() != "NaN")
                         {
                             temp_string.Append(data_array[i].ToString());
+							physioIdDataExists[i] = "True";
+							physioIdDataCount[i] = physioIdDataCount[i] + 1;
                         }
                         temp_string.Append(',');
                     }
