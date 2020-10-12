@@ -590,10 +590,10 @@ namespace VSCaptureMP
                     Console.Write("Enter length of CSV file in minutes:");
 
                     //sfileTimeLength = Console.ReadLine()
-                    sfileTimeLength = "1";//default to 15 minutes
+                    sfileTimeLength = "15";//default to 15 minutes
                 }
 
-                int nfileTimeLength = 1;
+                int nfileTimeLength = 15;
                 if (sfileTimeLength != "") nfileTimeLength = Convert.ToInt32(sfileTimeLength);
                 _serialPort.SetFileTime(nfileTimeLength);
                 
